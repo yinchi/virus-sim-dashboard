@@ -10,16 +10,22 @@ echo
 echo "====="
 echo "ISORT"
 echo "====="
-isort --show-files -w 100 ./src/
+uv run isort --show-files -w 100 ./src/
 
 echo
 echo "==========="
 echo "RUFF FORMAT"
 echo "==========="
-ruff format ./src/
+uv run ruff format ./src/  # ruff config in .ruff.toml
 
 echo
 echo "================"
 echo "RUFF CHECK --FIX"
 echo "================"
-ruff check --fix ./src/
+uv run ruff check --fix ./src/
+
+echo
+echo "====="
+echo "MYPY"
+echo "====="
+uv run mypy ./src/  # mypy config in pyproject.toml

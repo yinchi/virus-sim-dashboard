@@ -11,6 +11,12 @@ dependencies = [
     "dash-compose>=2023.3.12",
     "dash-iconify>=0.1.2",
     "dash-mantine-components>=2.4.1",
+    "humanize>=4.15.0",
+    "pandas-stubs>=2.3.3.260113",
+    "pandas[excel]>=3.0.0",
+    "plotly>=6.5.2",
+    "reliability>=0.9.0",
+    "scipy>=1.17.0",
 ]
 
 [project.scripts]
@@ -19,3 +25,17 @@ dashboard = "virus_sim_dashboard:main"
 [build-system]
 requires = ["uv_build>=0.9.2,<0.10.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.1.0",
+    "isort>=7.0.0",
+    "mypy>=1.19.1",
+    "ruff>=0.14.13",
+]
+
+[tool.mypy]
+disable_error_code=[
+    "import-untyped",  # Ignore uptyped imports
+    "attr-defined"     # Disable attribute checks (needed for dynamic attributes as in dash-compose)
+]
