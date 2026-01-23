@@ -92,10 +92,10 @@ def my_app_footer() -> Generator[DashComponent, None, DashComponent]:
             justify="space-between", style={"flex": 1}, h="100%", px="sm", pt="10", pb="5"
         ):
             with dmc.Text():
-                yield copyright_str()
+                yield dmc.Text(copyright_str())
             with dmc.Anchor(href="http://github.com/yinchi/virus-sim-dashboard", target="_blank"):
                 yield DashIconify(icon="ion:logo-github", height=16)
-                yield f"{NBSP}Github"
+                yield dmc.Text(f"{NBSP}Github")
     return ret
 
 

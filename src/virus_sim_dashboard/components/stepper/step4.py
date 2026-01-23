@@ -1,46 +1,46 @@
 """Step 4: Simulation and Results Visualization."""
 
 from collections.abc import Generator
+from typing import NamedTuple
 
-import dash
 import dash_mantine_components as dmc
-from dash import Input, Output, State, callback
+from dash import Input, Output, callback
 from dash.development.base_component import Component as DashComponent
 from dash_compose import composition
 
-from .common import ID_BTN_NEXT, ID_MAIN_STORE, ID_STEPPER
+from virus_sim_dashboard.components.common import main_ids
+
+
+# Component IDs
+class StepFourIDs(NamedTuple):
+    """Component IDs used in Step 4."""
+
+    BTN_PREV: str = "step4-btn-prev"
+
+
+step4_ids = StepFourIDs()
 
 
 @composition
 def layout() -> Generator[DashComponent, None, DashComponent]:
     """Contents of the dmc.StepperStep for Step 4."""
-    with dmc.Stack(None, id="step4-stack", gap="md", m=0, p=0) as ret:
-        yield dmc.Text(
-            "Step 4 contents go here.",
-        )
+    with dmc.Stack(None, gap="xl", m=0, p=0) as ret:
+        with dmc.Stack(None, gap="md", m=0, p=0):
+            yield dmc.Text(
+                "Step 4 contents go here.",
+            )
+        with dmc.Group(None, gap="md"):
+            yield dmc.Button("Previous", id=step4_ids.BTN_PREV)
     return ret
 
 
 @callback(
-    Output(ID_STEPPER, "active", allow_duplicate=True),
-    Output(ID_MAIN_STORE, "data", allow_duplicate=True),
-    Input(ID_BTN_NEXT, "n_clicks"),
-    Input("step4-stack", "id"),  # Dummy input to differentiate callbacks
-    State(ID_STEPPER, "active"),
-    State(ID_MAIN_STORE, "data"),
+    Output(main_ids.STEPPER, "active", allow_duplicate=True),
+    Input(step4_ids.BTN_PREV, "n_clicks"),
     prevent_initial_call=True,
 )
-def step4_on_next(
+def step4_on_prev(
     _: int,
-    _2: str,
-    active_step: int,
-    main_store_data: dict,
-) -> tuple[int, dict]:
-    """Handle 'Next' button click to advance the stepper."""
-    # Only proceed if we are on step 4 (active_step == 3)
-    if active_step != 3:
-        raise dash.exceptions.PreventUpdate
-
-    # TODO: Add necessary inputs to callback
-    # TODO: Validate inputs and update main_store_data as needed
-    return active_step + 1, main_store_data
+) -> int:
+    """Handle 'Previous' button click to go back a step."""
+    return 2  # Go back to step 3 (index 2)
