@@ -1,8 +1,8 @@
 """Step 1: File upload."""
 
-import io
-from base64 import b64decode
+from base64 import b64decode, b64encode
 from collections.abc import Generator
+from io import BytesIO
 from typing import NamedTuple
 
 import dash
@@ -176,7 +176,7 @@ def download_stays_example(_: int) -> dict:
 def handle_stays_file_upload(
     contents: str | None,
     filename: str | None,
-) -> tuple[list | None, str, str]:
+) -> tuple[str | None, str, str]:
     """Handle patient stay data file upload.
 
     If the file is valid, parse and store the data; otherwise, return validation errors.
@@ -205,7 +205,7 @@ def handle_stays_file_upload(
         try:
             _, b64_content = contents.split(",", 1)
             decoded_content = b64decode(b64_content)
-            df = pd.read_excel(io.BytesIO(decoded_content))
+            df = pd.read_excel(BytesIO(decoded_content))
             data, errors = process_patient_stay_data(df)
         except Exception as e:
             data, errors = None, [f"Error parsing Excel file: {str(e)}"]
@@ -214,7 +214,7 @@ def handle_stays_file_upload(
         try:
             _, b64_content = contents.split(",", 1)
             decoded_content = b64decode(b64_content)
-            df = pd.read_csv(io.StringIO(decoded_content.decode()))
+            df = pd.read_csv(BytesIO(decoded_content).decode())
             data, errors = process_patient_stay_data(df)
         except Exception as e:
             data, errors = None, [f"Error parsing CSV file: {str(e)}"]
@@ -289,7 +289,7 @@ STAYS_COLS_DATETIME = [
 STAYS_COL_STRING = ["Acquisition", "Summary"]
 
 
-def process_patient_stay_data(df: pd.DataFrame) -> tuple[list[dict] | None, list[str]]:
+def process_patient_stay_data(df: pd.DataFrame) -> tuple[str | None, list[str]]:
     """Validate and preprocess the uploaded patient stay data.
 
     Args:
@@ -297,8 +297,8 @@ def process_patient_stay_data(df: pd.DataFrame) -> tuple[list[dict] | None, list
 
     Returns:
         A tuple containing
-        1. A list-of-dicts representation of the validated and preprocessed data, or None if
-          validation failed.
+        1. The preprocessed patient stay data (converted to Feather and then base64-encoded),
+          or None if validation failed.
         2. A list of validation error messages (empty if no errors).
     """
     errors = []
@@ -368,7 +368,10 @@ def process_patient_stay_data(df: pd.DataFrame) -> tuple[list[dict] | None, list
         return None, errors
 
     # All validations passed, return the processed data with no errors
-    return df.to_dict(orient="records"), []
+    buf = BytesIO()
+    df.to_feather(buf)
+    buf.seek(0)
+    return b64encode(buf.getvalue()).decode("utf-8"), []
 
 
 # endregion
