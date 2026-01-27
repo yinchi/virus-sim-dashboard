@@ -3,7 +3,6 @@
 from base64 import b64decode, b64encode
 from collections.abc import Generator
 from io import BytesIO
-from typing import NamedTuple
 
 import dash
 import dash_mantine_components as dmc
@@ -12,7 +11,7 @@ from dash import Input, Output, State, callback, dcc
 from dash.development.base_component import Component as DashComponent
 from dash_compose import composition
 
-from virus_sim_dashboard.components.common import main_ids
+from virus_sim_dashboard.components.common import main_ids, step1_ids
 from virus_sim_dashboard.util import find_upwards, jsonify
 
 DISEASES = ["COVID-19", "Influenza", "RSV", "Other"]
@@ -38,25 +37,6 @@ def format_validation_errors(filename: str, errors: list[str]) -> str:
 
 {"\n".join(["- " + err for err in errors])}
 """
-
-
-# Component IDs
-class StepOneIDs(NamedTuple):
-    """Component IDs used in Step 1."""
-
-    SELECT_DISEASE_NAME: str = "step1-disease-select"
-    TEXTINPUT_CUSTOM_DISEASE: str = "step1-disease-custom"
-    BUTTON_DOWNLOAD_STAYS_EXAMPLE: str = "step1-stays-example-btn"
-    DOWNLOAD_STAYS_EXAMPLE: str = "step1-stays-example"
-    UPLOAD_STAYS_FILE: str = "step1-stays-upload"
-    TEXT_UPLOAD_STATUS: str = "step1-stays-upload-status"
-    STYLES_PROVIDER: str = "step1-stays-upload-details-wrapper"
-    TEXT_UPLOAD_DETAILS: str = "step1-stays-upload-details"
-    STORE_PARSED_DATA: str = "step1-parsed-data-store"
-    BTN_NEXT: str = "step1-btn-next"
-
-
-step1_ids = StepOneIDs()
 
 
 # region Layout
