@@ -106,38 +106,25 @@ def age_group_section() -> Generator[DashComponent, None, DashComponent]:
     with dmc.Stack(None, gap="md", m=0, p=0) as ret:
         yield dmc.Title("Age group settings", order=3)
         yield dmc.Text(
-            "Define age group breakpoints for GIM-only and ICU patients. "
+            "Define age group breakpoints. "
             'For example, "16,65" creates the age groups 0-15, 16-64, and 65+. '
             "An empty string will create a single age group covering all ages.",
             size="sm",
         )
 
-        yield dmc.Title("GIM-only patients", order=4)
         with dmc.Group(align="flex-start"):
-            yield dmc.TextInput(id=step3_ids.TEXTINPUT_AGE_BREAKPOINTS_GIM, w=300, value="16,65")
-            yield dmc.Button("Update", id=step3_ids.BTN_AGE_GROUPS_GIM_UPDATE)
+            yield dmc.TextInput(id=step3_ids.TEXTINPUT_AGE_BREAKPOINTS, w=300, value="16,65")
+            yield dmc.Button("Update", id=step3_ids.BTN_AGE_GROUPS_UPDATE)
             with dmc.Group():
                 yield dmc.Text("Current groups: ", fw=700, span=True)
-                yield dmc.Text("0-15, 16-64, 65+", id=step3_ids.TEXT_AGE_GROUPS_GIM, span=True)
+                yield dmc.Text("0-15, 16-64, 65+", id=step3_ids.TEXT_AGE_GROUPS, span=True)
                 yield dcc.Store(
-                    id=step3_ids.STORE_AGE_GROUPS_GIM,
+                    id=step3_ids.STORE_AGE_GROUPS,
                     data=[
                         "Age >= 0 and Age < 16",
                         "Age >= 16 and Age < 65",
                         "Age >= 65",
                     ],  # match initial value of text input
-                )
-
-        yield dmc.Title("ICU patients", order=4)
-        with dmc.Group(align="flex-start"):
-            yield dmc.TextInput(id=step3_ids.TEXTINPUT_AGE_BREAKPOINTS_ICU, w=300, value="")
-            yield dmc.Button("Update", id=step3_ids.BTN_AGE_GROUPS_ICU_UPDATE)
-            with dmc.Group():
-                yield dmc.Text("Current groups: ", fw=700, span=True)
-                yield dmc.Text("0+", id=step3_ids.TEXT_AGE_GROUPS_ICU, span=True)
-                yield dcc.Store(
-                    id=step3_ids.STORE_AGE_GROUPS_ICU,
-                    data=["Age >= 0"],  # match initial value of text input
                 )
     return ret
 
@@ -246,41 +233,17 @@ def update_config_summary(
 
 
 @callback(
-    Output(step3_ids.TEXT_AGE_GROUPS_GIM, "children"),
-    Output(step3_ids.STORE_AGE_GROUPS_GIM, "data"),
-    Output(step3_ids.TEXTINPUT_AGE_BREAKPOINTS_GIM, "error"),
-    Input(step3_ids.BTN_AGE_GROUPS_GIM_UPDATE, "n_clicks"),
-    State(step3_ids.TEXTINPUT_AGE_BREAKPOINTS_GIM, "value"),
+    Output(step3_ids.TEXT_AGE_GROUPS, "children"),
+    Output(step3_ids.STORE_AGE_GROUPS, "data"),
+    Output(step3_ids.TEXTINPUT_AGE_BREAKPOINTS, "error"),
+    Input(step3_ids.BTN_AGE_GROUPS_UPDATE, "n_clicks"),
+    State(step3_ids.TEXTINPUT_AGE_BREAKPOINTS, "value"),
 )
-def update_age_groups_gim(
+def update_age_groups(
     _n: int,
     breakpoints_str: str,
 ) -> tuple[str, dict[str, str], None] | tuple[NoUpdate, NoUpdate, str]:
     """Update displayed GIM age groups based on breakpoints input.
-
-    Also sets an error message if the input is invalid, or clears it if valid.
-    """
-    try:
-        breakpoints = [int(bp.strip()) for bp in breakpoints_str.split(",") if bp.strip() != ""]
-        breakpoints = sorted(set(breakpoints))
-        age_groups = compute_age_groups(breakpoints)
-        return ", ".join(age_groups.keys()), age_groups, None
-    except ValueError:
-        return dash.no_update, dash.no_update, "Invalid breakpoints"
-
-
-@callback(
-    Output(step3_ids.TEXT_AGE_GROUPS_ICU, "children"),
-    Output(step3_ids.STORE_AGE_GROUPS_ICU, "data"),
-    Output(step3_ids.TEXTINPUT_AGE_BREAKPOINTS_ICU, "error"),
-    Input(step3_ids.BTN_AGE_GROUPS_ICU_UPDATE, "n_clicks"),
-    State(step3_ids.TEXTINPUT_AGE_BREAKPOINTS_ICU, "value"),
-)
-def update_age_groups_icu(
-    _n: int,
-    breakpoints_str: str,
-) -> tuple[str, dict[str, str], None] | tuple[NoUpdate, NoUpdate, str]:
-    """Update displayed ICU age groups based on breakpoints input.
 
     Also sets an error message if the input is invalid, or clears it if valid.
     """
@@ -307,7 +270,7 @@ def step3_on_prev(
 
 @callback(
     Output(step3_ids.TABLE_PATIENT_COUNTS_GIM, "data"),
-    Input(step3_ids.STORE_AGE_GROUPS_GIM, "data"),
+    Input(step3_ids.STORE_AGE_GROUPS, "data"),
     Input(step3_ids.DATEPICKER_START, "value"),
     Input(step3_ids.DATEPICKER_END, "value"),
     Input(main_ids.STEPPER, "active"),
@@ -358,7 +321,7 @@ def update_patient_counts_gim(
 
 @callback(
     Output(step3_ids.TABLE_PATIENT_COUNTS_ICU, "data"),
-    Input(step3_ids.STORE_AGE_GROUPS_ICU, "data"),
+    Input(step3_ids.STORE_AGE_GROUPS, "data"),
     Input(step3_ids.DATEPICKER_START, "value"),
     Input(step3_ids.DATEPICKER_END, "value"),
     Input(main_ids.STEPPER, "active"),
@@ -408,7 +371,7 @@ def update_patient_counts_icu(
 
 @callback(
     Output(step3_ids.TABLE_LOS_GROUPS_GIM, "children"),
-    Input(step3_ids.STORE_AGE_GROUPS_GIM, "data"),
+    Input(step3_ids.STORE_AGE_GROUPS, "data"),
 )
 def update_los_groups_gim(
     age_groups: dict[str, str],
@@ -464,7 +427,7 @@ def update_los_groups_gim(
 
 @callback(
     Output(step3_ids.TABLE_LOS_GROUPS_ICU, "children"),
-    Input(step3_ids.STORE_AGE_GROUPS_ICU, "data"),
+    Input(step3_ids.STORE_AGE_GROUPS, "data"),
 )
 def update_los_groups_icu(
     age_groups: dict[str, str],

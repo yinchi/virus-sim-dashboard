@@ -67,15 +67,10 @@ class StepThreeIDs(NamedTuple):
         "id": "step3-daily-arrivals",
     }
 
-    TEXTINPUT_AGE_BREAKPOINTS_GIM: str = "step3-textinput-age-breakpoints-gim"
-    BTN_AGE_GROUPS_GIM_UPDATE: str = "step3-btn-age-groups-gim-update"
-    TEXT_AGE_GROUPS_GIM: str = "step3-text-age-groups-gim"
-    STORE_AGE_GROUPS_GIM: str = "step3-store-age-groups-gim"
-
-    TEXTINPUT_AGE_BREAKPOINTS_ICU: str = "step3-textinput-age-breakpoints-icu"
-    BTN_AGE_GROUPS_ICU_UPDATE: str = "step3-btn-age-groups-icu-update"
-    TEXT_AGE_GROUPS_ICU: str = "step3-text-age-groups-icu"
-    STORE_AGE_GROUPS_ICU: str = "step3-store-age-groups-icu"
+    TEXTINPUT_AGE_BREAKPOINTS: str = "step3-textinput-age-breakpoints-gim"
+    BTN_AGE_GROUPS_UPDATE: str = "step3-btn-age-groups-gim-update"
+    TEXT_AGE_GROUPS: str = "step3-text-age-groups-gim"
+    STORE_AGE_GROUPS: str = "step3-store-age-groups-gim"
 
     DATEPICKER_START: str = "step3-datepicker-start"
     DATEPICKER_END: str = "step3-datepicker-end"
