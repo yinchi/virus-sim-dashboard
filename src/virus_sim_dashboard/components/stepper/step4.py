@@ -1,10 +1,11 @@
 """Step 4: Simulation and Results Visualization."""
 
 from collections.abc import Generator
+import json
 from typing import NamedTuple
 
 import dash_mantine_components as dmc
-from dash import Input, Output, callback
+from dash import Input, Output, State, callback, dcc
 from dash.development.base_component import Component as DashComponent
 from dash_compose import composition
 
@@ -29,6 +30,8 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
             yield dmc.Text(
                 "Step 4 contents go here.",
             )
+            yield dmc.Button("TEMP download data", id="temp-download-btn")
+            yield dcc.Download(id="temp-download")
         with dmc.Group(None, gap="md"):
             yield dmc.Button("Previous", id=step4_ids.BTN_PREV)
     return ret
@@ -44,3 +47,18 @@ def step4_on_prev(
 ) -> int:
     """Handle 'Previous' button click to go back a step."""
     return 2  # Go back to step 3 (index 2)
+
+
+@callback(
+    Output("temp-download", "data"),
+    Input("temp-download-btn", "n_clicks"),
+    State(main_ids.MAIN_STORE, "data"),
+    prevent_initial_call=True,
+)
+def temp_download_data(_: int, main_store_data: dict) -> dict:
+    """Temporary callback to download data."""
+    
+    return {
+        "content": json.dumps(main_store_data),
+        "filename": "main_store_data.json",
+    }

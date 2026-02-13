@@ -11,7 +11,7 @@ from dash import Input, Output, State, callback, dcc
 from dash.development.base_component import Component as DashComponent
 from dash_compose import composition
 
-from virus_sim_dashboard.components.common import main_ids, step1_ids
+from virus_sim_dashboard.components.common import main_ids, step1_ids, step3_ids
 from virus_sim_dashboard.util import find_upwards, jsonify
 
 DISEASES = ["COVID-19", "Influenza", "RSV", "Other"]
@@ -221,11 +221,13 @@ def toggle_next_button(parsed_data: list | None) -> bool:
 @callback(
     Output(main_ids.STEPPER, "active", allow_duplicate=True),
     Output(main_ids.MAIN_STORE, "data", allow_duplicate=True),
+    Output(step3_ids.STORE_FIT_LOS_DISTS_RESULTS, "data", allow_duplicate=True),
     Input(step1_ids.BTN_NEXT, "n_clicks"),
     State(step1_ids.SELECT_DISEASE_NAME, "value"),
     State(step1_ids.TEXTINPUT_CUSTOM_DISEASE, "value"),
     State(main_ids.MAIN_STORE, "data"),
     State(step1_ids.STORE_PARSED_DATA, "data"),
+    State(step3_ids.STORE_FIT_LOS_DISTS_RESULTS, "data"),
     prevent_initial_call=True,
 )
 def step1_on_next(
@@ -234,7 +236,8 @@ def step1_on_next(
     custom_disease_name: str,
     main_store_data: dict,
     parsed_stays_data: dict | None,
-) -> tuple[int, dict]:
+    los_fit_results: dict | None,
+) -> tuple[int, dict, dict | None]:
     """Handle 'Next' button click to advance the stepper."""
     disease_name_final = custom_disease_name.strip() if disease_name == "Other" else disease_name
 
@@ -248,8 +251,9 @@ def step1_on_next(
     # If data has changed, update current step data and discard downstream step data
     if jsonify(old_step1_data) != jsonify(new_step1_data):
         main_store_data = {"step1": new_step1_data}
+        los_fit_results = None  # Clear LOS fit results from Step 3
 
-    return 1, main_store_data  # Advance to Step 2 (index 1)
+    return 1, main_store_data, los_fit_results  # Advance to Step 2 (index 1)
 
 
 # endregion

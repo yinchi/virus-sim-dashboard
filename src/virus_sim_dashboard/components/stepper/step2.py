@@ -84,7 +84,7 @@ def start_timestamp_controls() -> Generator[DashComponent, None, DashComponent]:
                 "(case insensitive)."
             ),
             data=START_OPTS,
-            value="FirstPosCollected",
+            value="Admission",
             allowDeselect=False,
         )
         yield dmc.Select(
@@ -205,10 +205,12 @@ def step2_on_prev(
 @callback(
     Output(main_ids.STEPPER, "active", allow_duplicate=True),
     Output(main_ids.MAIN_STORE, "data", allow_duplicate=True),
+    Output(step3_ids.STORE_FIT_LOS_DISTS_RESULTS, "data", allow_duplicate=True),
     Input(step2_ids.BTN_NEXT, "n_clicks"),
     State(step2_ids.SELECT_START_OPT_COMMUNITY, "value"),
     State(step2_ids.SELECT_START_OPT_OTHER, "value"),
     State(main_ids.MAIN_STORE, "data"),
+    State(step3_ids.STORE_FIT_LOS_DISTS_RESULTS, "data"),
     prevent_initial_call=True,
 )
 def step2_on_next(
@@ -216,7 +218,8 @@ def step2_on_next(
     start_opt_community: START_OPTS_TYPE,
     start_opt_other: START_OPTS_TYPE,
     main_store_data: dict,
-) -> tuple[int, dict]:
+    los_fit_results: dict | None,
+) -> tuple[int, dict, dict | None]:
     """Handle 'Next' button click to advance the stepper."""
     # Since start timestamp options are selected from dropdowns, they should always be valid
     # Store data is also always valid since validation is done when Update buttons are clicked
@@ -229,8 +232,9 @@ def step2_on_next(
         main_store_data["step2"] = step2_dict
         # Invalidate and discard any data beyond step 2
         main_store_data = {k: v for k, v in main_store_data.items() if k in ["step1", "step2"]}
+        los_fit_results = None  # Clear LOS fit results from Step 3
 
-    return 2, main_store_data  # Advance to step 3 (index 2)
+    return 2, main_store_data, los_fit_results  # Advance to step 3 (index 2)
 
 
 # endregion

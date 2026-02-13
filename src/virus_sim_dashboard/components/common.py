@@ -86,6 +86,7 @@ class StepThreeIDs(NamedTuple):
 
     BTN_FIT_LOS_DISTS: str = "step3-btn-fit-los-dists"
     STORE_FIT_LOS_DISTS_RESULTS: str = "step3-store-fit-los-dists-results"
+    STACK_LOS_FIT_RESULTS: str = "step3-stack-los-fit-results"
 
 
 step3_ids = StepThreeIDs()
