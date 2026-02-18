@@ -85,3 +85,60 @@ class StepThreeIDs(NamedTuple):
 
 
 step3_ids = StepThreeIDs()
+
+
+class StepFourIDs(NamedTuple):
+    """Component IDs used in Step 4."""
+
+    BTN_PREV: str = "step4-btn-prev"
+    BTN_NEXT: str = "step4-btn-next"
+
+    TABS_CONFIG_OPTION: str = "step4-tabs-config-option"
+    BTN_DOWNLOAD_EXAMPLE_SCENARIO: str = "step4-button-download-example-scenario"
+    DOWNLOAD_EXAMPLE_SCENARIO: str = "step4-download-example-scenario"
+    UPLOAD_SCENARIO_FILE: str = "step4-upload-scenario-file"
+    BTN_UPLOAD_SCENARIO: str = "step4-btn-upload-scenario"
+    STORE_UPLOADED_SCENARIO: str = "step4-store-uploaded-scenario"
+
+    STACK_SCENARIO_OPT_UPLOAD: str = "step4-stack-scenario-opt-upload"
+    STACK_SCENARIO_OPT_MANUAL: str = "step4-stack-scenario-opt-manual"
+
+    NUMINPUT_JITTER: str = "step4-numinput-jitter"
+
+    GRAPH_DAILIES_OPT_UPLOAD: dict[str, str] = {  # need dict for wildcard callbacks
+        "type": "graph",
+        "id": "step4-dailies-opt-upload",
+    }
+    GRAPH_HOURLIES_OPT_UPLOAD: dict[str, str] = {  # need dict for wildcard callbacks
+        "type": "graph",
+        "id": "step4-hourlies-opt-upload",
+    }
+    GRAPH_DAILIES_OPT_MANUAL: dict[str, str] = {  # need dict for wildcard callbacks
+        "type": "graph",
+        "id": "step4-dailies-opt-manual",
+    }
+    GRAPH_HOURLIES_OPT_MANUAL: dict[str, str] = {  # need dict for wildcard callbacks
+        "type": "graph",
+        "id": "step4-hourlies-opt-manual",
+    }
+
+
+step4_ids = StepFourIDs()
+
+
+class StepFiveIDs(NamedTuple):
+    """Component IDs used in Step 5."""
+
+    BTN_PREV: str = "step5-btn-prev"
+
+    DOWNLOAD_CONFIG: str = "step5-download-config"
+    BTN_DOWNLOAD_CONFIG: str = "step5-download-config"
+
+    BTN_SIMULATE: str = "step5-btn-simulate"
+    GROUP_SIM_PROGRESS: str = "step5-sim-progress"
+    TEXT_SIM_PROGRESS: str = "step5-sim-progress-text"
+    PROGRESS_SIM_PROGRESS: str = "step5-sim-progress-bar"
+    STACK_SIMULATION_RESULTS: str = "step5-simulation-results"
+
+
+step5_ids = StepFiveIDs()

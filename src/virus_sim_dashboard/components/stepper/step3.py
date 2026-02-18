@@ -996,7 +996,7 @@ def display_results_components(
                         yield dmc.Text(
                             [
                                 dmc.Text("Associated grouping: ", span=True, fw=700),
-                                f"{key} (n={val['count']}, {val['p_total']:.2%} of total)"
+                                f"{key} (n={val['count']}, {val['p_total']:.2%} of total)",
                             ]
                         )
                     else:

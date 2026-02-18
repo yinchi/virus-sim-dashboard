@@ -10,5 +10,4 @@ app = Dash(
     use_pages=True,
 )
 
-
 app.layout = app_shell.layout()
