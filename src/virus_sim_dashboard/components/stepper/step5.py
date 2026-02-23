@@ -1,18 +1,28 @@
 """Step 5: Simulation and Results Visualization."""
 
-import time
+import json
+import typing
 from collections.abc import Generator
 from io import BytesIO
 from typing import Callable
 
+import dash
 import dash_mantine_components as dmc
 import diskcache
 import pandas as pd
-from dash import DiskcacheManager, Input, Output, State, callback, dcc
+from dash import DiskcacheManager, Input, NoUpdate, Output, Patch, State, callback, dcc
 from dash.development.base_component import Component as DashComponent
 from dash_compose import composition
+from plotly import graph_objects as go
 
 from virus_sim_dashboard.components.common import main_ids, step5_ids
+from virus_sim_dashboard.sim import (
+    EnvironmentFactory,
+    SimMultipleResult,
+    get_quantiles,
+    sim_multiple,
+)
+from virus_sim_dashboard.util import DEFAULT_FIGURE_LAYOUT
 
 
 # region layout
@@ -22,6 +32,11 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
     with dmc.Stack(None, gap="xl", m=0, p=0) as ret:
         yield dmc.Title("Step 5: Simulation and Results Visualization", order=2, ta="center")
         with dmc.Group(None, gap="md"):
+            # yield dmc.Button(
+            #     "Download full config (.json)",
+            #     size="xl",
+            #     id="temp-download-json-btn",
+            # )
             yield dmc.Button(
                 "Download full config (.xlsx)",
                 disabled=True,
@@ -31,19 +46,55 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
             yield dcc.Download(id=step5_ids.DOWNLOAD_CONFIG)
             yield dmc.Button("Run simulation", color="green", size="xl", id=step5_ids.BTN_SIMULATE)
         # Progress indicator for simulation running status
-        yield dmc.Title("Simulation Progress", order=3)
-        with dmc.Group(None, id=step5_ids.GROUP_SIM_PROGRESS, gap="md", style={"display": "none"}):
-            yield dmc.Text("0/30", id=step5_ids.TEXT_SIM_PROGRESS)
-            yield dmc.Progress(
-                color="blue", id=step5_ids.PROGRESS_SIM_PROGRESS, size="xl", w=900, value=0
-            )
-        yield dmc.Stack(
-            None,  # Empty initially
-            id=step5_ids.STACK_SIMULATION_RESULTS,
+        with dmc.Stack(None, id=step5_ids.STACK_SIM_PROGRESS, gap="md", style={"display": "none"}):
+            yield dmc.Title("Simulation Progress", order=3)
+            with dmc.Group(None, gap="md"):
+                yield dmc.Text("0/30", id=step5_ids.TEXT_SIM_PROGRESS)
+                yield dmc.Progress(
+                    color="blue", id=step5_ids.PROGRESS_SIM_PROGRESS, size="xl", w=900, value=0
+                )
+        yield dcc.Store(id=step5_ids.STORE_SIMULATION_RESULTS)  # Store for simulation results
+
+        with dmc.Stack(
+            None,
+            id=step5_ids.STACK_SIM_RESULTS,
             gap="md",
-            m=0,
-            p=0,
-        )
+            style={"display": "none"},  # hide until we have results to show
+        ):
+            yield dmc.Title("Simulation Results", order=3)
+            yield dmc.MultiSelect(
+                # Since we don't know the age groups in advance, default to 0+
+                size="md",
+                data=[{"label": "0+", "value": "0+"}],
+                value=["0+"],
+                label="Filter by Age Groups",
+                id=step5_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS,
+                placeholder="Click here to select age groups",
+            )
+            yield dmc.Button(
+                "Select All",
+                id=step5_ids.BTN_OUTPUT_GROUPINGS_ALL,
+            )
+            yield dmc.Title("GIM Beds Occupancy (selected age groups)", order=4)
+
+            layout_gim: dict[str, typing.Any] = DEFAULT_FIGURE_LAYOUT.copy()
+            layout_gim["title"]["text"] = "GIM Beds Occupancy (daily maximum)"
+            figure_gim = go.Figure(layout=layout_gim)
+            yield dcc.Graph(
+                id=step5_ids.GRAPH_GIM_BEDS_OCCUPANCY,
+                figure=figure_gim,
+            )
+
+            yield dmc.Title("ICU Beds Occupancy (selected age groups)", order=4)
+
+            layout_icu: dict[str, typing.Any] = DEFAULT_FIGURE_LAYOUT.copy()
+            layout_icu["title"]["text"] = "ICU Beds Occupancy (daily maximum)"
+            figure_icu = go.Figure(layout=layout_icu)
+            yield dcc.Graph(
+                id=step5_ids.GRAPH_ICU_BEDS_OCCUPANCY,
+                figure=figure_icu,
+            )
+
         with dmc.Group(None, gap="md"):
             yield dmc.Button("Previous", id=step5_ids.BTN_PREV)
     return ret
@@ -66,7 +117,26 @@ def step5_on_prev(
 
 
 @callback(
-    Output(step5_ids.DOWNLOAD_CONFIG, "data"),
+    Output(step5_ids.DOWNLOAD_CONFIG, "data", allow_duplicate=True),
+    Input("temp-download-json-btn", "n_clicks"),
+    State(main_ids.MAIN_STORE, "data"),
+    prevent_initial_call=True,
+)
+def step5_on_download_json(
+    _: int,
+    main_store_data: dict,
+) -> dict:
+    """Handle 'Download JSON' button click to download the current config as a JSON file."""
+    return {
+        "filename": "config.json",
+        "type": "application/json",
+        "base64": False,
+        "content": json.dumps(main_store_data, indent=4, sort_keys=False),
+    }
+
+
+@callback(
+    Output(step5_ids.DOWNLOAD_CONFIG, "data", allow_duplicate=True),
     Input(step5_ids.BTN_DOWNLOAD_CONFIG, "n_clicks"),
     State(main_ids.MAIN_STORE, "data"),
     prevent_initial_call=True,
@@ -89,9 +159,9 @@ def step5_on_download_config(
 
 
 @callback(
-    Output(step5_ids.STACK_SIMULATION_RESULTS, "children"),
-    Output(step5_ids.TEXT_SIM_PROGRESS, "children"),
-    Output(step5_ids.PROGRESS_SIM_PROGRESS, "value"),
+    Output(step5_ids.STORE_SIMULATION_RESULTS, "data"),  # dict
+    Output(step5_ids.TEXT_SIM_PROGRESS, "children"),  # str
+    Output(step5_ids.PROGRESS_SIM_PROGRESS, "value"),  # float
     Input(step5_ids.BTN_SIMULATE, "n_clicks"),
     State(main_ids.MAIN_STORE, "data"),
     prevent_initial_call=True,
@@ -102,8 +172,8 @@ def step5_on_download_config(
     running=[
         (Output(step5_ids.BTN_SIMULATE, "disabled"), True, False),
         (Output(step5_ids.PROGRESS_SIM_PROGRESS, "animated"), True, False),
-        (Output(step5_ids.GROUP_SIM_PROGRESS, "style"), {"display": "flex"}, {"display": "none"}),
-        (Output(step5_ids.STACK_SIMULATION_RESULTS, "children"), None, None),
+        (Output(step5_ids.STACK_SIM_PROGRESS, "style"), {"display": "flex"}, {"display": "none"}),
+        (Output(step5_ids.STACK_SIM_RESULTS, "style"), {"display": "none"}, {"display": "flex"}),
     ],
     progress=[
         Output(step5_ids.TEXT_SIM_PROGRESS, "children"),
@@ -111,27 +181,182 @@ def step5_on_download_config(
     ],
     interval=200,  # update progress every 200ms
 )
-@composition
 def step5_on_simulate(
     set_progress: Callable[[tuple[str, float]], None],  # progress_text, progress_pct
     _: int,
     main_store_data: dict,
-):
+) -> tuple[dict, str, float]:
     """Handle 'Run Simulation' button click to run the simulation and update progress."""
     # Simulate a long-running process with progress updates
 
-    total_steps = 30
-    for i in range(total_steps):
-        time.sleep(0.5)  # Simulate work by sleeping
-        set_progress((f"Running: {i + 1}/{total_steps} iterations", (i + 1) / total_steps * 100))
+    n_runs = 30
+    env_factory = EnvironmentFactory(main_store_data)
+    results = sim_multiple(env_factory, n_runs=n_runs, set_progress=set_progress)
 
-    # Once simulation is done, return the results visualization (placeholder for now)
-    with dmc.Stack(None) as ret:
-        yield dmc.Text("Simulation complete! Results go here.")
+    # Return the simulation results data (to be stored in dcc.Store)
+    # and reset the final progress text and progress bar value
+    return results.to_dict(), f"Running: 0/{n_runs} iterations", 0
 
-    # Return the children of the stack (populate the existing stack in the layout)
-    # and reset the progress indicators (will be hidden with "display: none")
-    return ret.children, f"Running: 0/{total_steps} iterations", 0
+
+@callback(
+    Output(step5_ids.STACK_SIM_RESULTS, "style"),
+    Output(step5_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS, "data"),
+    Output(step5_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS, "value", allow_duplicate=True),
+    Input(step5_ids.STORE_SIMULATION_RESULTS, "data"),
+    Input(step5_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS, "value"),
+    prevent_initial_call=True,
+)
+def step5_show_sim_results(
+    simulation_results_data: dict,
+    selected_age_groups: list[str],
+) -> tuple[dict, list[dict[str, str]] | NoUpdate, list[str] | NoUpdate]:
+    """Update the results stack with visualizations based on the simulation results."""
+    if simulation_results_data is None:
+        stack_display_style = {"display": "none"}  # No results to show yet
+    else:
+        stack_display_style = {"display": "flex"}  # Show the results stack when we have results
+
+    sim_results = SimMultipleResult.from_dict(simulation_results_data)
+    age_groups = sorted(sim_results.gim[0].columns)
+
+    # If selected age groups is not a subset of available age groups, default to all age groups
+    new_multiselect_data: list[dict[str, str]] | dash.NoUpdate
+    new_multiselect_value: list[str] | dash.NoUpdate
+
+    if not set(selected_age_groups).issubset(set(age_groups)):
+        new_multiselect_data = [{"label": ag, "value": ag} for ag in age_groups]
+        new_multiselect_value = list(age_groups)
+    else:
+        new_multiselect_data = dash.no_update
+        new_multiselect_value = dash.no_update
+
+    return (stack_display_style, new_multiselect_data, new_multiselect_value)
+
+
+@callback(
+    Output(step5_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS, "value", allow_duplicate=True),
+    Input(step5_ids.BTN_OUTPUT_GROUPINGS_ALL, "n_clicks"),
+    State(step5_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS, "data"),
+    prevent_initial_call=True,
+)
+def step5_on_select_all_groupings(
+    _: int,
+    multiselect_data: list[dict[str, str]],
+) -> list[str]:
+    """Handle 'Select All' button click to select all age groups in the multiselect."""
+    return sorted([item["value"] for item in multiselect_data])
+
+
+@callback(
+    Output(step5_ids.GRAPH_GIM_BEDS_OCCUPANCY, "figure", allow_duplicate=True),
+    Output(step5_ids.GRAPH_ICU_BEDS_OCCUPANCY, "figure", allow_duplicate=True),
+    Input(step5_ids.STORE_SIMULATION_RESULTS, "data"),
+    Input(step5_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS, "value"),
+    State(main_ids.MAIN_STORE, "data"),
+    prevent_initial_call=True,
+)
+def step5_update_simulation_graphs(
+    simulation_results_data: dict,
+    selected_age_groups: list[str],
+    main_store_data: dict,
+) -> tuple[go.Figure, go.Figure]:
+    """Update the GIM and ICU occupancy graphs."""
+    disease_name = main_store_data.get("step1", {}).get("disease_name", "<unknown disease>")
+
+    figure_gim = Patch()
+    figure_icu = Patch()
+
+    figure_gim["layout"]["title"]["text"] = (
+        f"GIM Beds Occupancy for {disease_name} (selected age groups)"
+    )
+    figure_icu["layout"]["title"]["text"] = (
+        f"ICU Beds Occupancy for {disease_name} (selected age groups)"
+    )
+
+    if simulation_results_data is None:
+        return figure_gim, figure_icu  # Return empty figures if no data
+
+    results = SimMultipleResult.from_dict(simulation_results_data)
+    gim_summary = get_quantiles(results.gim, selected_age_groups)
+    icu_summary = get_quantiles(results.icu, selected_age_groups)
+
+    figure_gim["data"] = [
+        go.Scatter(
+            x=gim_summary.index,
+            y=gim_summary[0.1],
+            line_width=0,
+            name="Bottom Decile",
+        ),
+        go.Scatter(
+            x=gim_summary.index,
+            y=gim_summary[0.9],
+            line_width=0,
+            name="Top Decile",
+            fill="tonexty",
+            fillcolor="rgba(127,127,255,0.5)",
+        ),
+        go.Scatter(
+            x=gim_summary.index,
+            y=gim_summary[0.25],
+            line_width=0,
+            name="Lower Quartile",
+        ),
+        go.Scatter(
+            x=gim_summary.index,
+            y=gim_summary[0.75],
+            line_width=0,
+            name="Upper Quartile",
+            fill="tonexty",
+            fillcolor="rgba(127,127,255,1)",
+        ),
+        go.Scatter(
+            x=gim_summary.index,
+            y=gim_summary[0.5],
+            line_width=2,
+            line_color="black",
+            name="Median",
+        ),
+    ]
+
+    figure_icu["data"] = [
+        go.Scatter(
+            x=icu_summary.index,
+            y=icu_summary[0.1],
+            line_width=0,
+            name="Bottom Decile",
+        ),
+        go.Scatter(
+            x=icu_summary.index,
+            y=icu_summary[0.9],
+            line_width=0,
+            name="Top Decile",
+            fill="tonexty",
+            fillcolor="rgba(127,127,255,0.5)",
+        ),
+        go.Scatter(
+            x=icu_summary.index,
+            y=icu_summary[0.25],
+            line_width=0,
+            name="Lower Quartile",
+        ),
+        go.Scatter(
+            x=icu_summary.index,
+            y=icu_summary[0.75],
+            line_width=0,
+            name="Upper Quartile",
+            fill="tonexty",
+            fillcolor="rgba(127,127,255,1)",
+        ),
+        go.Scatter(
+            x=icu_summary.index,
+            y=icu_summary[0.5],
+            line_width=2,
+            line_color="black",
+            name="Median",
+        ),
+    ]
+
+    return figure_gim, figure_icu
 
 
 # endregion

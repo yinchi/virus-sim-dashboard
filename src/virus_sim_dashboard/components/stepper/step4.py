@@ -1,6 +1,5 @@
 """Step 4: Scenario Definition."""
 
-import json
 from base64 import b64decode, b64encode
 from collections.abc import Generator
 from io import BytesIO
@@ -24,11 +23,6 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
     with dmc.Stack(None, gap="xl", m=0, p=0) as ret:
         with dmc.Stack(None, gap="md", m=0, p=0):
             yield dmc.Title("Step 4: Scenario Definition", order=2, ta="center")
-        # with dmc.Stack(None, gap="md", m=0, p=0):
-        #     yield dmc.Title("Temp: Download Steps 1-3 config", order=4)
-        #     with dmc.Group(None, gap="md", m=0, p=0):
-        #         yield dmc.Button("Download", id="temp-download-btn")
-        #         yield dcc.Download(id="temp-download")
         with dmc.Tabs(
             None,
             id=step4_ids.TABS_CONFIG_OPTION,
@@ -99,10 +93,12 @@ def jitter_controls() -> Generator[DashComponent, None, DashComponent]:
             yield dmc.NumberInput(
                 id=step4_ids.NUMINPUT_JITTER,
                 value=0,
-                label="Jitter",
+                label="Jitter (0-100%)",
                 min=0,
                 max=100,
                 step=1,
+                # Reject invalid inputs, works since no invalid value is a prefix of a valid value
+                clampBehavior="strict",
                 allowDecimal=False,
                 allowNegative=False,
                 allowLeadingZeros=False,
@@ -125,20 +121,6 @@ def step4_on_prev(
 ) -> int:
     """Handle 'Previous' button click to go back a step."""
     return 2  # Go back to step 3 (index 2)
-
-
-@callback(
-    Output("temp-download", "data"),
-    Input("temp-download-btn", "n_clicks"),
-    State(main_ids.MAIN_STORE, "data"),
-    prevent_initial_call=True,
-)
-def temp_download_data(_: int, main_store_data: dict) -> dict:
-    """Temporary callback to download app data from Steps 1-3."""
-    return {
-        "content": json.dumps(main_store_data),
-        "filename": "main_store_data.json",
-    }
 
 
 @callback(
@@ -267,7 +249,7 @@ def step4_on_next(
     _: int,
     tab_value: str | None,
     uploaded_data: dict | None,
-    jitter_value: int | None,
+    jitter_value: int,
     main_store_data: dict,
 ) -> tuple[int, dict]:
     """Handle 'Next' button click to go to the next step and store scenario data."""
@@ -281,7 +263,7 @@ def step4_on_next(
         step4_dict = {
             "dailies": uploaded_data["dailies"],
             "hourlies": uploaded_data["hourlies"],
-            "jitter": jitter_value,
+            "jitter": jitter_value / 100,
         }
 
     # Manual option: compute scenario based on user inputs (start/end, peak value, etc.)

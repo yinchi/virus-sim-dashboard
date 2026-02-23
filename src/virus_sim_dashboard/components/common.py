@@ -135,10 +135,24 @@ class StepFiveIDs(NamedTuple):
     BTN_DOWNLOAD_CONFIG: str = "step5-download-config"
 
     BTN_SIMULATE: str = "step5-btn-simulate"
-    GROUP_SIM_PROGRESS: str = "step5-sim-progress"
+    STACK_SIM_PROGRESS: str = "step5-sim-progress"
     TEXT_SIM_PROGRESS: str = "step5-sim-progress-text"
     PROGRESS_SIM_PROGRESS: str = "step5-sim-progress-bar"
-    STACK_SIMULATION_RESULTS: str = "step5-simulation-results"
+
+    STORE_SIMULATION_RESULTS: str = "step5-store-simulation-results"
+    STACK_SIM_RESULTS: str = "step5-simulation-results"
+
+    MULTISELECT_SIM_OUTPUT_GROUPINGS: str = "step5-multiselect-sim-output-groupings"
+    BTN_OUTPUT_GROUPINGS_ALL: str = "step5-btn-sim-output-groupings-all"
+
+    GRAPH_GIM_BEDS_OCCUPANCY: dict[str, str] = {  # need dict for wildcard callbacks
+        "type": "graph",
+        "id": "step5-graph-gim-beds-occupancy",
+    }
+    GRAPH_ICU_BEDS_OCCUPANCY: dict[str, str] = {  # need dict for wildcard callbacks
+        "type": "graph",
+        "id": "step5-graph-icu-beds-occupancy",
+    }
 
 
 step5_ids = StepFiveIDs()

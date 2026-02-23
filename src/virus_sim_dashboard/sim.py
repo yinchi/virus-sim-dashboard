@@ -2,7 +2,7 @@
 
 import random
 import typing
-from base64 import b64decode
+from base64 import b64decode, b64encode
 from dataclasses import dataclass
 from io import BytesIO
 from itertools import chain
@@ -14,6 +14,7 @@ import salabim as s
 LOS_CAP = 100.0  # cap length of stay at 100 days for sanity
 
 
+# region parsing
 def parse_key(key: str) -> dict[str, str]:
     """Convert a string representing a patient group into a dict representation.
 
@@ -37,6 +38,7 @@ def get_all_age_groups(data: dict) -> set[str]:
     from which we want to get the unique age_group values only.
     We assume that the age groups are the same across pathways and outcomes.
     """
+    # flatten the list of groups across all labels and extract the age_group values into a set
     return set(
         chain.from_iterable([[g["age_group"] for g in lbl["groups"]] for lbl in data.values()])
     )
@@ -84,15 +86,31 @@ def parse_post_icu(d: dict) -> dict:
     }
 
 
-def in_label(pathway, outcome, age_group, groups):
-    """Check if a given pathway, outcome, and age group combination is present in the groups."""
+def get_p_in_label(
+    pathway: str,
+    outcome: str,
+    age_group: str,
+    groups: list[dict[str, typing.Any]],
+) -> float | None:
+    """Check if a given pathway, outcome, and age group combination is present in the groups.
+
+    If present, return the probability of that combination within the label, i.e. P(group | label).
+    If not, return None.  Note that a group may be defined with probability 0, in which case
+    this function will return 0 rather than None.
+    """
     for g in groups:
         if g["pathway"] == pathway and g["outcome"] == outcome and g["age_group"] == age_group:
             return g["p_in_label"]
     return None
 
 
-def get_dist(dist_name, params):
+GroupTuple = tuple[str, str, str]  # (pathway, outcome, age_group)
+
+# Allowed distribution types for length of stay modeling (can be extended as needed)
+LOSDistribution = typing.Union[dist.Lognormal_Distribution]
+
+
+def get_dist(dist_name, params) -> LOSDistribution:
     """Return a distribution object based on the given distribution name and parameters.
 
     Currently only supports 'Lognormal_3P' distribution, but can be extended to support more types
@@ -104,12 +122,10 @@ def get_dist(dist_name, params):
     raise ValueError(f"Unsupported distribution: {dist_name}")
 
 
-GroupTuple = tuple[str, str, str]  # (pathway, outcome, age_group)
-
-# Allowed distribution types for length of stay modeling (can be extended as needed)
-LOSDistribution = typing.Union[dist.Lognormal_Distribution]
+# endregion
 
 
+# region class definitions
 @dataclass
 class GimLabelInfo:
     """Information about a grouping label for GIM patients.
@@ -241,72 +257,78 @@ class PatientsInfo:
     icu_info: IcuInfo
     """Information about ICU patients in the model."""
 
+    @classmethod
+    def from_main_store(cls, main_store_data: dict) -> typing.Self:
+        """Parse the patient configuration settings from the dashboard's main store data."""
+        fit_results = main_store_data["step3"]["los_fit_results"]
 
-def parse_patient_config(main_store_data: dict) -> PatientsInfo:
-    """Parse the patient configuration settings from the main store data."""
-    gim_data = parse_gim(main_store_data["step3"]["gim"])
-    pre_icu_data = parse_pre_icu(main_store_data["step3"]["pre_icu"])
-    icu_data = parse_icu(main_store_data["step3"]["icu"])
-    post_icu_data = parse_post_icu(main_store_data["step3"]["post_icu"])
+        gim_data = {k: parse_gim(v) for k, v in fit_results["gim"].items()}
+        pre_icu_data = {k: parse_pre_icu(v) for k, v in fit_results["icu"].items()}
+        icu_data = {k: parse_icu(v) for k, v in fit_results["icu"].items()}
+        post_icu_data = {k: parse_post_icu(v) for k, v in fit_results["icu"].items()}
 
-    gim_info = GimInfo()
-    for outcome in ["survived", "died"]:
-        for age_group in get_all_age_groups(gim_data):
-            for label, label_data in gim_data.items():
-                p_label = label_data["p_label"]
-                p_in_label = in_label("gim", outcome, age_group, label_data["groups"])
+        gim_info = GimInfo()
+        for outcome in ["survived", "died"]:
+            for age_group in get_all_age_groups(gim_data):
+                for label, label_data in gim_data.items():
+                    p_label = label_data["p_label"]
+                    p_in_label = get_p_in_label("gim", outcome, age_group, label_data["groups"])
 
-                # Skip if this group is not present
-                if p_in_label is None or p_in_label == 0:
-                    continue
+                    # Skip if this group is not present
+                    if p_in_label is None or p_in_label == 0:
+                        continue
 
-                # Create the label record if it doesn't exist
-                if label not in gim_info.label_to_group:
-                    gim_info.add_label(
-                        label=label,
-                        p_label=p_label,
-                        los_dist=get_dist(label_data["dist"], label_data["params"]),
+                    # Create the label record if it doesn't exist
+                    if label not in gim_info.label_to_group:
+                        gim_info.add_label(
+                            label=label,
+                            p_label=p_label,
+                            los_dist=get_dist(label_data["dist"], label_data["params"]),
+                        )
+
+                    # Add the group to label mapping
+                    group_tuple = ("gim", outcome, age_group)
+                    gim_info.add_group_to_label(
+                        group=group_tuple, label=label, p_in_label=p_in_label
                     )
 
-                # Add the group to label mapping
-                group_tuple = ("gim", outcome, age_group)
-                gim_info.add_group_to_label(group=group_tuple, label=label, p_in_label=p_in_label)
+        icu_info = IcuInfo()
+        for outcome in ["survived", "died"]:
+            for age_group in get_all_age_groups(icu_data):
+                for label, label_data in icu_data.items():
+                    p_label = label_data["p_label"]
+                    p_in_label = get_p_in_label("icu", outcome, age_group, label_data["groups"])
 
-    icu_info = IcuInfo()
-    for outcome in ["survived", "died"]:
-        for age_group in get_all_age_groups(icu_data):
-            for label, label_data in icu_data.items():
-                p_label = label_data["p_label"]
-                p_in_label = in_label("icu", outcome, age_group, label_data["groups"])
+                    # Skip if this group is not present
+                    if p_in_label is None or p_in_label == 0:
+                        continue
 
-                # Skip if this group is not present
-                if p_in_label is None or p_in_label == 0:
-                    continue
+                    pre_icu_label_data = pre_icu_data[label]
+                    post_icu_label_data = post_icu_data[label]
 
-                pre_icu_label_data = pre_icu_data[label]
-                post_icu_label_data = post_icu_data[label]
+                    # Create the label record if it doesn't exist
+                    if label not in icu_info.label_to_group:
+                        icu_info.add_label(
+                            label=label,
+                            p_label=p_label,
+                            p_pre_icu=pre_icu_label_data["prob_pre_icu"],
+                            p_post_icu=post_icu_label_data["prob_post_icu"],
+                            pre_icu_los_dist=get_dist(
+                                pre_icu_label_data["dist"], pre_icu_label_data["params"]
+                            ),
+                            icu_los_dist=get_dist(label_data["dist"], label_data["params"]),
+                            post_icu_los_dist=get_dist(
+                                post_icu_label_data["dist"], post_icu_label_data["params"]
+                            ),
+                        )
 
-                # Create the label record if it doesn't exist
-                if label not in icu_info.label_to_group:
-                    icu_info.add_label(
-                        label=label,
-                        p_label=p_label,
-                        p_pre_icu=pre_icu_label_data["prob_pre_icu"],
-                        p_post_icu=post_icu_label_data["prob_post_icu"],
-                        pre_icu_los_dist=get_dist(
-                            pre_icu_label_data["dist"], pre_icu_label_data["params"]
-                        ),
-                        icu_los_dist=get_dist(label_data["dist"], label_data["params"]),
-                        post_icu_los_dist=get_dist(
-                            post_icu_label_data["dist"], post_icu_label_data["params"]
-                        ),
+                    # Add the group to label mapping
+                    group_tuple = ("icu", outcome, age_group)
+                    icu_info.add_group_to_label(
+                        group=group_tuple, label=label, p_in_label=p_in_label
                     )
 
-                # Add the group to label mapping
-                group_tuple = ("icu", outcome, age_group)
-                icu_info.add_group_to_label(group=group_tuple, label=label, p_in_label=p_in_label)
-
-    return PatientsInfo(gim_info=gim_info, icu_info=icu_info)
+        return cls(gim_info=gim_info, icu_info=icu_info)
 
 
 class RandomPatientGenerator:
@@ -417,23 +439,23 @@ class Scenario:
         """
         return env.hours(self.rand_hour() + random.uniform(0, 1))
 
+    @classmethod
+    def from_main_store(cls, main_store_data: dict) -> typing.Self:
+        """Parse the patient arrival scenario configuration from the main store data."""
+        scenario_data = main_store_data["step4"]
 
-def parse_scenario_config(main_store_data: dict) -> Scenario:
-    """Parse the patient arrival scenario configuration from the main store data."""
-    scenario_data = main_store_data["step4"]["scenario"]
+        # read dataframe, set index, and extract the 'count' column as a Series
+        dailies_bytes = BytesIO(b64decode(scenario_data["dailies"]))
+        dailies_df = pd.read_feather(dailies_bytes).set_index("date")
+        dailies = dailies_df["count"]
 
-    # read dataframe, set index, and extract the 'count' column as a Series
-    dailies_bytes = BytesIO(b64decode(scenario_data["dailies"]))
-    dailies_df = pd.read_feather(dailies_bytes).set_index("date")
-    dailies = dailies_df["count"]
+        # read dataframe, set index, and extract the 'probability' column as a Series
+        hourlies_bytes = BytesIO(b64decode(scenario_data["hourlies"]))
+        hourlies_df = pd.read_feather(hourlies_bytes).set_index("hour")
+        hourlies = hourlies_df["probability"]
 
-    # read dataframe, set index, and extract the 'probability' column as a Series
-    hourlies_bytes = BytesIO(b64decode(scenario_data["hourlies"]))
-    hourlies_df = pd.read_feather(hourlies_bytes).set_index("hour")
-    hourlies = hourlies_df["probability"]
-
-    jitter = scenario_data["jitter"]
-    return Scenario(dailies=dailies, hourlies=hourlies, jitter=jitter)
+        jitter = scenario_data["jitter"]
+        return cls(dailies=dailies, hourlies=hourlies, jitter=jitter)
 
 
 class Environment(s.Environment):
@@ -450,6 +472,7 @@ class Environment(s.Environment):
 
         super().__init__(
             *args,
+            random_seed="*",  # use a random seed for each simulation run
             datetime0=scenario.dailies.index.min(),
             **kwargs,
         )
@@ -522,7 +545,7 @@ class Patient(s.Component):
         self.profile = profile
         """Patient attributes such as pathway, outcome, age group, length of stay, etc."""
 
-    def process(self):
+    def process(self) -> None:
         """The main process for the patient.
 
         This will handle the patient's bed occupancy logic and eventual departure from the hospital.
@@ -599,17 +622,15 @@ class RandomPatientsGenerator(s.Component):
         """Randomness value for the number of arrivals each day.  For exactly the arrival
         numbers as specified in the scenario, set this to 0 (the default)."""
 
-    def process(self):
+    def process(self) -> None:
         """The main process for generating patients."""
         self.env: Environment  # type hint for better autocompletion
 
         for _date, daily_count in self.scenario.dailies.items():
-            # Add jitter to the daily count if specified
-            if self.jitter > 0:
-                randomized_daily_count = int(
-                    daily_count * random.uniform(1 - self.jitter, 1 + self.jitter)
-                )
-                randomized_daily_count = max(randomized_daily_count, 0)  # ensure non-negative count
+            randomized_daily_count = int(
+                daily_count * random.uniform(1 - self.jitter, 1 + self.jitter)
+            )
+            randomized_daily_count = max(randomized_daily_count, 0)  # ensure non-negative count
 
             for _ in range(randomized_daily_count):
                 # Generate a random patient profile
@@ -639,8 +660,8 @@ class EnvironmentFactory:
     """
 
     def __init__(self, main_store_data: dict):
-        self.patients_info = parse_patient_config(main_store_data)
-        self.scenario = parse_scenario_config(main_store_data)
+        self.patients_info = PatientsInfo.from_main_store(main_store_data)
+        self.scenario = Scenario.from_main_store(main_store_data)
         self.random_patient_generator = RandomPatientGenerator(
             gim_info=self.patients_info.gim_info, icu_info=self.patients_info.icu_info
         )
@@ -653,24 +674,136 @@ class EnvironmentFactory:
         )
 
 
-def sim_once(env_factory: EnvironmentFactory) -> dict:
-    """Run a single simulation and return the environment with the results."""
+# endregion
+
+
+# region simulation
+@dataclass
+class SimResult:
+    """Dataclass to store the result of a single simulation run."""
+
+    gim: pd.DataFrame
+    icu: pd.DataFrame
+
+
+@dataclass
+class SimMultipleResult:
+    """Dataclass to store the result of multiple simulation runs."""
+
+    gim: list[pd.DataFrame]
+    icu: list[pd.DataFrame]
+
+    def to_dict(self) -> dict:
+        """Convert the simulation results to a JSON-serializable format."""
+
+        def df_to_str(df: pd.DataFrame) -> dict:
+            bytes_io = BytesIO()
+            df.to_feather(bytes_io)
+            return {"data": b64encode(bytes_io.getvalue()).decode("utf-8")}
+
+        return {
+            "gim": [df_to_str(df) for df in self.gim],
+            "icu": [df_to_str(df) for df in self.icu],
+        }
+
+    @classmethod
+    def from_dict(cls, json_data: dict) -> typing.Self:
+        """Create a SimMultipleResult instance from JSON data."""
+
+        def str_to_df(data_str: dict) -> pd.DataFrame:
+            bytes_io = BytesIO(b64decode(data_str["data"]))
+            return pd.read_feather(bytes_io)
+
+        gim = [str_to_df(df_str) for df_str in json_data["gim"]]
+        icu = [str_to_df(df_str) for df_str in json_data["icu"]]
+        return cls(gim=gim, icu=icu)
+
+
+def sim_once(env_factory: EnvironmentFactory) -> SimResult:
+    """Run a single simulation and return the daily maximum occupancy for GIM and ICU beds."""
     env = env_factory.create_environment()
     env.run()
 
-    gim_beds_df = env.gim_beds.claimed_quantity.as_dataframe()
-    gim_beds_df.columns = ["t", "occupancy"]
-    
-    raise NotImplementedError("sim_once is not fully implemented yet.")
+    # Daily max GIM occupancy
+    gim_beds_by_age_group_df = {}
+    gim_beds_by_age_group_df_daily = {}
+
+    for age_group in sorted(env.gim_beds_by_age_group.keys()):
+        gim_beds_by_age_group_df[age_group] = env.gim_beds_by_age_group[
+            age_group
+        ].claimed_quantity.as_dataframe()
+        gim_beds_by_age_group_df[age_group].columns = ["t", f"{age_group}"]
+        gim_beds_by_age_group_df[age_group].t = gim_beds_by_age_group_df[age_group].t.map(
+            env.t_to_datetime
+        )
+
+        gim_beds_by_age_group_df_daily[age_group] = (
+            gim_beds_by_age_group_df[age_group].resample("D", on="t").max().ffill()
+        )
+
+    gim_beds_summary_df = (
+        pd.concat(gim_beds_by_age_group_df_daily.values(), axis=1, sort=True).ffill().fillna(0)
+    )
+
+    # Daily max ICU occupancy
+    icu_beds_by_age_group_df = {}
+    icu_beds_by_age_group_df_daily = {}
+
+    for age_group in sorted(env.icu_beds_by_age_group.keys()):
+        icu_beds_by_age_group_df[age_group] = env.icu_beds_by_age_group[
+            age_group
+        ].claimed_quantity.as_dataframe()
+        icu_beds_by_age_group_df[age_group].columns = ["t", f"{age_group}"]
+        icu_beds_by_age_group_df[age_group].t = icu_beds_by_age_group_df[age_group].t.map(
+            env.t_to_datetime
+        )
+
+        icu_beds_by_age_group_df_daily[age_group] = (
+            icu_beds_by_age_group_df[age_group].resample("D", on="t").max().ffill()
+        )
+
+    icu_beds_summary_df = (
+        pd.concat(icu_beds_by_age_group_df_daily.values(), axis=1, sort=True).ffill().fillna(0)
+    )
+
+    return SimResult(
+        gim=gim_beds_summary_df,
+        icu=icu_beds_summary_df,
+    )
 
 
-def sim_multiple(env_factory: EnvironmentFactory, n_runs: int):
+def sim_multiple(
+    env_factory: EnvironmentFactory,
+    n_runs: int,
+    set_progress: typing.Callable[[tuple[str, float]], None],  # progress_text, progress_pct
+) -> SimMultipleResult:
     """Run multiple simulations and return the aggregated results."""
-    results = []
-    for _ in range(n_runs):
-        env = env_factory.create_environment()
-        results.append(env.run())
-    
-    # TODO: aggregate results across runs and return them in a structured format
+    results_gim = []
+    results_icu = []
+    for i in range(n_runs):
+        result = sim_once(env_factory)
+        results_gim.append(result.gim)
+        results_icu.append(result.icu)
+        set_progress((f"Running: {i + 1}/{n_runs} iterations", (i + 1) / n_runs * 100))
 
-    raise NotImplementedError("sim_multiple is not fully implemented yet.")
+    return SimMultipleResult(gim=results_gim, icu=results_icu)
+
+
+def get_quantiles(result_list: list[pd.DataFrame], groupings: list[str]) -> pd.DataFrame:
+    """Get daily quantiles of bed occupancy for the selected age groups.
+
+    The `result_list` is a list of dataframes for GIM or ICU occupancy, e.g. `result.gim` or
+    `result.icu` where result is the result of `sim_multiple()`.
+
+    The quantiles returned are the 10th, 25th, 50th, 75th, and 90th percentiles
+    (lower and upper deciles and quartiles, and the median).
+    """
+    return (
+        pd.concat([result.loc[:, groupings].sum(axis=1) for result in result_list], axis=1)
+        .fillna(0)
+        .quantile([0.1, 0.25, 0.5, 0.75, 0.9], axis=1)
+        .T
+    )
+
+
+# endregion
