@@ -69,9 +69,9 @@ def header_right() -> Generator[DashComponent, None, DashComponent]:
     """Right side of the header."""
     with dmc.Group(p=0, m=0, gap="xl", align="center") as ret:
         yield dmc.Anchor(
-            "Tutorial (PDF) ↗️",
+            "Documentation ↗️",
             c="inherit",
-            href=dash.get_asset_url("tutorial.pdf"),
+            href="https://github.com/yinchi/virus-sim-dashboard/tree/main/docs",
             target="_blank",
         )
         yield dmc.Anchor(
