@@ -12,7 +12,7 @@ dashboard-prod:
 
 # Launch the dashboard in dev mode
 dashboard:
-    @uv run dashboard -H 0.0.0.0 -p 8888
+    @uv run dashboard -p 8888
 
 # Build the Docker container
 build:
