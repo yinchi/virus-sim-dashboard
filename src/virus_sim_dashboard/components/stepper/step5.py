@@ -334,86 +334,91 @@ def step5_update_simulation_graphs(
         return figure_gim, figure_icu  # Return empty figures if no data
 
     results = SimMultipleResult.from_dict(simulation_results_data)
-    gim_summary = get_quantiles(results.gim, selected_age_groups)
-    icu_summary = get_quantiles(results.icu, selected_age_groups)
+    try:
+        gim_summary = get_quantiles(results.gim, selected_age_groups)
+        icu_summary = get_quantiles(results.icu, selected_age_groups)
 
-    figure_gim["data"] = [
-        go.Scatter(
-            x=gim_summary.index,
-            y=gim_summary[0.1],
-            line_width=0,
-            name="Bottom Decile",
-        ),
-        go.Scatter(
-            x=gim_summary.index,
-            y=gim_summary[0.9],
-            line_width=0,
-            name="Top Decile",
-            fill="tonexty",
-            fillcolor="rgba(127,127,255,0.5)",
-        ),
-        go.Scatter(
-            x=gim_summary.index,
-            y=gim_summary[0.25],
-            line_width=0,
-            name="Lower Quartile",
-        ),
-        go.Scatter(
-            x=gim_summary.index,
-            y=gim_summary[0.75],
-            line_width=0,
-            name="Upper Quartile",
-            fill="tonexty",
-            fillcolor="rgba(127,127,255,1)",
-        ),
-        go.Scatter(
-            x=gim_summary.index,
-            y=gim_summary[0.5],
-            line_width=2,
-            line_color="black",
-            name="Median",
-        ),
-    ]
+        figure_gim["data"] = [
+            go.Scatter(
+                x=gim_summary.index,
+                y=gim_summary[0.1],
+                line_width=0,
+                name="Bottom Decile",
+            ),
+            go.Scatter(
+                x=gim_summary.index,
+                y=gim_summary[0.9],
+                line_width=0,
+                name="Top Decile",
+                fill="tonexty",
+                fillcolor="rgba(127,127,255,0.5)",
+            ),
+            go.Scatter(
+                x=gim_summary.index,
+                y=gim_summary[0.25],
+                line_width=0,
+                name="Lower Quartile",
+            ),
+            go.Scatter(
+                x=gim_summary.index,
+                y=gim_summary[0.75],
+                line_width=0,
+                name="Upper Quartile",
+                fill="tonexty",
+                fillcolor="rgba(127,127,255,1)",
+            ),
+            go.Scatter(
+                x=gim_summary.index,
+                y=gim_summary[0.5],
+                line_width=2,
+                line_color="black",
+                name="Median",
+            ),
+        ]
 
-    figure_icu["data"] = [
-        go.Scatter(
-            x=icu_summary.index,
-            y=icu_summary[0.1],
-            line_width=0,
-            name="Bottom Decile",
-        ),
-        go.Scatter(
-            x=icu_summary.index,
-            y=icu_summary[0.9],
-            line_width=0,
-            name="Top Decile",
-            fill="tonexty",
-            fillcolor="rgba(127,127,255,0.5)",
-        ),
-        go.Scatter(
-            x=icu_summary.index,
-            y=icu_summary[0.25],
-            line_width=0,
-            name="Lower Quartile",
-        ),
-        go.Scatter(
-            x=icu_summary.index,
-            y=icu_summary[0.75],
-            line_width=0,
-            name="Upper Quartile",
-            fill="tonexty",
-            fillcolor="rgba(127,127,255,1)",
-        ),
-        go.Scatter(
-            x=icu_summary.index,
-            y=icu_summary[0.5],
-            line_width=2,
-            line_color="black",
-            name="Median",
-        ),
-    ]
+        figure_icu["data"] = [
+            go.Scatter(
+                x=icu_summary.index,
+                y=icu_summary[0.1],
+                line_width=0,
+                name="Bottom Decile",
+            ),
+            go.Scatter(
+                x=icu_summary.index,
+                y=icu_summary[0.9],
+                line_width=0,
+                name="Top Decile",
+                fill="tonexty",
+                fillcolor="rgba(127,127,255,0.5)",
+            ),
+            go.Scatter(
+                x=icu_summary.index,
+                y=icu_summary[0.25],
+                line_width=0,
+                name="Lower Quartile",
+            ),
+            go.Scatter(
+                x=icu_summary.index,
+                y=icu_summary[0.75],
+                line_width=0,
+                name="Upper Quartile",
+                fill="tonexty",
+                fillcolor="rgba(127,127,255,1)",
+            ),
+            go.Scatter(
+                x=icu_summary.index,
+                y=icu_summary[0.5],
+                line_width=2,
+                line_color="black",
+                name="Median",
+            ),
+        ]
 
-    return figure_gim, figure_icu
+        return figure_gim, figure_icu
+    except KeyError:
+        # Fix issue where this callback gets triggered before the multiselect options are
+        # populated (defaulting to "0+"), causing a KeyError in get_quantiles
+        raise dash.exceptions.PreventUpdate
 
 
 # endregion
