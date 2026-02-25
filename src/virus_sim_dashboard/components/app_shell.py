@@ -89,13 +89,13 @@ def my_app_footer() -> Generator[DashComponent, None, DashComponent]:
     """Footer component for the Dash app."""
     with dmc.AppShellFooter(None, miw=config.app_width, h=config.footer_height, p=0, m=0) as ret:
         with dmc.Group(
-            justify="space-between", style={"flex": 1}, h="100%", px="sm", pt="10", pb="5"
+            justify="space-between", h="100%", px="sm", pt="5", pb="5"
         ):
             with dmc.Text():
                 yield dmc.Text(copyright_str())
             with dmc.Anchor(href="http://github.com/yinchi/virus-sim-dashboard", target="_blank"):
                 yield DashIconify(icon="ion:logo-github", height=16)
-                yield dmc.Text(f"{NBSP}Github")
+                yield dmc.Text(f"{NBSP}Github", span=True)
     return ret
 
 
