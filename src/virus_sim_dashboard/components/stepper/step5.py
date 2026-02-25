@@ -95,6 +95,14 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
                 figure=figure_icu,
             )
 
+            with dmc.Group(None, gap="md"):
+                yield dmc.Button(
+                    "Download simulation results (.xlsx)",
+                    disabled=True,
+                    id=step5_ids.BTN_DOWNLOAD_SIM_RESULTS,
+                )
+                yield dcc.Download(id=step5_ids.DOWNLOAD_SIM_RESULTS)
+
         with dmc.Group(None, gap="md"):
             yield dmc.Button("Previous", id=step5_ids.BTN_PREV)
     return ret
@@ -196,6 +204,55 @@ def step5_on_simulate(
     # Return the simulation results data (to be stored in dcc.Store)
     # and reset the final progress text and progress bar value
     return results.to_dict(), f"Running: 0/{n_runs} iterations", 0
+
+
+@callback(
+    Output(step5_ids.BTN_DOWNLOAD_SIM_RESULTS, "disabled"),
+    Input(step5_ids.STORE_SIMULATION_RESULTS, "data"),
+    State(step5_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS, "value"),
+    prevent_initial_call=True,
+)
+def step5_update_download_button(
+    simulation_results_data: dict,
+    selected_age_groups: list[str],
+) -> bool:
+    """Enable or disable the 'Download Simulation Results' button."""
+    # Disable if we don't have simulation results or if no age groups are selected
+    return simulation_results_data is None or len(selected_age_groups) == 0
+
+
+@callback(
+    Output(step5_ids.DOWNLOAD_SIM_RESULTS, "data"),
+    Input(step5_ids.BTN_DOWNLOAD_SIM_RESULTS, "n_clicks"),
+    State(step5_ids.STORE_SIMULATION_RESULTS, "data"),
+    State(step5_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS, "value"),
+    prevent_initial_call=True,
+)
+def step5_on_download_sim_results(
+    _: int,
+    simulation_results_data: dict,
+    selected_age_groups: list[str],
+) -> dict[str, typing.Any] | NoUpdate:
+    """Handle button click to download the results as an Excel file."""
+    if simulation_results_data is None:
+        return dash.no_update  # No results to download
+    if not selected_age_groups:
+        return dash.no_update  # No age groups selected, so no data to download
+    results = SimMultipleResult.from_dict(simulation_results_data)
+    gim_summary = get_quantiles(results.gim, selected_age_groups)
+    icu_summary = get_quantiles(results.icu, selected_age_groups)
+
+    with BytesIO() as buffer:
+        with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+            gim_summary.to_excel(writer, sheet_name="GIM Beds Occupancy")
+            icu_summary.to_excel(writer, sheet_name="ICU Beds Occupancy")
+        excel_bytes = buffer.getvalue()
+
+    return dcc.send_bytes(
+        excel_bytes,
+        filename=f"simulation_results_{'_'.join(selected_age_groups)}.xlsx",
+        type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
 
 @callback(

@@ -154,5 +154,8 @@ class StepFiveIDs(NamedTuple):
         "id": "step5-graph-icu-beds-occupancy",
     }
 
+    BTN_DOWNLOAD_SIM_RESULTS: str = "step5-btn-download-sim-results"
+    DOWNLOAD_SIM_RESULTS: str = "step5-download-sim-results"
+
 
 step5_ids = StepFiveIDs()
