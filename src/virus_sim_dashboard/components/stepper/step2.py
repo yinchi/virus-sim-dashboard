@@ -173,7 +173,7 @@ def update_daily_arrivals_graph(
             y=counts_df["Daily Arrivals"],
             name="Daily Arrivals",
             mode="lines",
-            line=dict(color="lightblue", width=1),
+            line=dict(color="rgba(0,0,255,0.5)", width=1),
         )
     )
     if show_rolling_avg:

@@ -33,8 +33,8 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
                 yield step1.layout()
 
             with dmc.StepperStep(
-                label="Define patient groups",
-                description="Group patients based on age, etc.",
+                label="Patient settings",
+                description="Set patient arrival settings",
             ):
                 yield step2.layout()
 

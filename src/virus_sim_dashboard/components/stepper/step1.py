@@ -46,7 +46,7 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
     with dmc.Stack(None, gap="xl", m=0, p=0) as ret:
         with dmc.Stack(None, id="step1-stack", gap="md", m=0, p=0):
             yield dcc.Store(id=step1_ids.STORE_PARSED_DATA, data=None)
-            yield dmc.Title("Step 1: File upload", order=2, ta="center")
+            yield dmc.Title("Step 1: Upload patient stay data", order=2, ta="center")
             yield dmc.Title("Name of respiratory illness", order=3)
             with dmc.Group(None, align="flex-start", gap="md"):
                 yield dmc.Select(

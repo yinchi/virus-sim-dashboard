@@ -925,12 +925,12 @@ def display_results_components(
         with dmc.TabsList(None):
             yield dmc.TabsTab("GIM-only patients", value="gim", disabled=True, ta="right")
             for label in sorted(fit_results.get("gim", {})):
-                yield dmc.TabsTab(f"Group {label}", value=f"gim-{label}", ta="right")
+                yield dmc.TabsTab(f"Label {label}", value=f"gim-{label}", ta="right")
 
             yield dmc.TabsTab("ICU patients", value="icu", disabled=True, ta="right")
             for label in sorted(fit_results.get("icu", {})):
                 yield dmc.TabsTab(
-                    f"Group {label}", value=f"icu-{label}", color="orange", ta="right"
+                    f"Label {label}", value=f"icu-{label}", color="orange", ta="right"
                 )
 
         for label in sorted(fit_results.get("gim", {})):
