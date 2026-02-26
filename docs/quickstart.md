@@ -2,7 +2,7 @@
 
 ## 1. Automatic setup (Windows)
 
-For Windows, the following instructions are the simplest way to launch the dashboard on your local machine.  However, the installation of `uv` (a required dependency) may be blocked by your organization's Windows policies. If so, or if running MacOS or Linux, try the manual installation options below.
+For Windows, the following instructions are the simplest way to launch the dashboard on your local machine.  However, the installation of `uv` (a required dependency) may be blocked by your organization's Windows policies. If so, or if running MacOS or Linux, try the manual installation options in Section 2.
 
 1. Download and extract the project code.
 2. Open the project directory, right-click on `dashboard.ps1`, and click "Run with PowerShell".
