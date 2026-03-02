@@ -1,6 +1,6 @@
 [project]
 name = "virus-sim-dashboard"
-version = "0.1.0"
+version = "0.2.0"
 description = "CUH Winter Virus Modelling Dashboard"
 readme = "README.md"
 authors = [
