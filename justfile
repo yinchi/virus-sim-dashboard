@@ -20,7 +20,7 @@ build:
 
 # Launch the Docker container
 docker:
-    @docker run --rm -d -p 8050:8050 --name virus-sim-dashboard yinchi/virus-sim-dashboard:latest
+    @docker run --rm -d -p 8050:8050 --init --name virus-sim-dashboard yinchi/virus-sim-dashboard:latest
 
 # Stop the Docker container
 docker-stop:

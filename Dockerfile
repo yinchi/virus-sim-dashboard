@@ -11,7 +11,7 @@ USER dash:dash
 WORKDIR /home/dash/app
 COPY . .
 RUN --mount=type=cache,target=/home/dash/.cache/uv,uid=10001,gid=10001,mode=0775 \
-    uv sync --no-dev
+    uv sync --no-dev --locked --no-editable
 
 EXPOSE 8050
 CMD ["just", "dashboard-prod"]

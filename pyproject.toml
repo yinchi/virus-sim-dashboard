@@ -1,12 +1,12 @@
 [project]
 name = "virus-sim-dashboard"
-version = "0.1.0"
+version = "0.2.0"
 description = "CUH Winter Virus Modelling Dashboard"
 readme = "README.md"
 authors = [
     { name = "Yin-Chi Chan", email = "ycc39@cam.ac.uk" }
 ]
-requires-python = ">=3.13.11"
+requires-python = ">=3.13,<3.14"
 dependencies = [
     "dash-compose>=2023.3.12",
     "dash-iconify>=0.1.2",
