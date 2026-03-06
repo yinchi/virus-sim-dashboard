@@ -1,6 +1,5 @@
 """Step 5: Simulation and Results Visualization."""
 
-import json
 import typing
 from collections.abc import Generator
 from io import BytesIO
@@ -16,6 +15,7 @@ from dash_compose import composition
 from plotly import graph_objects as go
 
 from virus_sim_dashboard.components.common import main_ids, step5_ids
+from virus_sim_dashboard.export import export_xlsx
 from virus_sim_dashboard.sim import (
     EnvironmentFactory,
     SimMultipleResult,
@@ -32,14 +32,8 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
     with dmc.Stack(None, gap="xl", m=0, p=0) as ret:
         yield dmc.Title("Step 5: Simulation and Results Visualization", order=2, ta="center")
         with dmc.Group(None, gap="md"):
-            # yield dmc.Button(
-            #     "Download full config (.json)",
-            #     size="xl",
-            #     id="temp-download-json-btn",
-            # )
             yield dmc.Button(
                 "Download full config (.xlsx)",
-                disabled=True,
                 size="xl",
                 id=step5_ids.BTN_DOWNLOAD_CONFIG,
             )
@@ -126,25 +120,6 @@ def step5_on_prev(
 
 @callback(
     Output(step5_ids.DOWNLOAD_CONFIG, "data", allow_duplicate=True),
-    Input("temp-download-json-btn", "n_clicks"),
-    State(main_ids.MAIN_STORE, "data"),
-    prevent_initial_call=True,
-)
-def step5_on_download_json(
-    _: int,
-    main_store_data: dict,
-) -> dict:
-    """Handle 'Download JSON' button click to download the current config as a JSON file."""
-    return {
-        "filename": "config.json",
-        "type": "application/json",
-        "base64": False,
-        "content": json.dumps(main_store_data, indent=4, sort_keys=False),
-    }
-
-
-@callback(
-    Output(step5_ids.DOWNLOAD_CONFIG, "data", allow_duplicate=True),
     Input(step5_ids.BTN_DOWNLOAD_CONFIG, "n_clicks"),
     State(main_ids.MAIN_STORE, "data"),
     prevent_initial_call=True,
@@ -154,16 +129,12 @@ def step5_on_download_config(
     main_store_data: dict,
 ) -> dict:
     """Handle 'Download Config' button click to download the current config as an Excel file."""
-    # Empty workbook for demo purposes
-    # TODO: populate the workbook with the actual config data from main_store_data
-    with BytesIO() as buffer:
-        with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-            ws = writer.book.active
-            ws.title = "Config"
-            ws["A1"] = "Disease Name"
-            ws["B1"] = main_store_data.get("step1", {}).get("disease_name", "N/A")
-        excel_bytes = buffer.getvalue()
-    return dcc.send_bytes(excel_bytes, "config.xlsx")
+    bytes_io = export_xlsx(main_store_data)
+    return dcc.send_bytes(
+        bytes_io.getvalue(),
+        filename="simulation_config.xlsx",
+        type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
 
 @callback(
