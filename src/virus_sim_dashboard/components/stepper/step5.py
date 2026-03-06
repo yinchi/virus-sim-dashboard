@@ -1,6 +1,5 @@
 """Step 5: Simulation and Results Visualization."""
 
-import json
 import typing
 from collections.abc import Generator
 from io import BytesIO
