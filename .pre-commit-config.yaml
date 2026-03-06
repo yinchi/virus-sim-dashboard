@@ -1,0 +1,26 @@
+repos:
+-   repo: https://github.com/pycqa/isort
+    rev: 8.0.1
+    hooks:
+    -   id: isort
+        types_or:
+        - python
+        - pyi
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.5
+    hooks:
+    -   id: ruff-check
+        args:
+        - --config
+        - .ruff.toml
+        - --fix
+        types_or:
+        - python
+        - pyi
+    -   id: ruff-format
+        args:
+        - --config
+        - .ruff.toml
+        types_or:
+        - python
+        - pyi

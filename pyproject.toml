@@ -39,6 +39,13 @@ dev = [
     "ruff>=0.14.13",
 ]
 
+[tool.isort]
+filter_files=true
+line_length=100
+# Match ruff --format settings
+multi_line_output = 3
+include_trailing_comma = true
+
 [tool.mypy]
 disable_error_code=[
     "import-untyped",  # Ignore uptyped imports

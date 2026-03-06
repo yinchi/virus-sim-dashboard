@@ -10,19 +10,19 @@ echo
 echo "====="
 echo "ISORT"
 echo "====="
-uv run isort --show-files -w 100 ./src/
-
-echo
-echo "==========="
-echo "RUFF FORMAT"
-echo "==========="
-uv run ruff format --config ./.ruff.toml ./src/ # ruff config in .ruff.toml
+uv run isort --show-files ./src/
 
 echo
 echo "================"
 echo "RUFF CHECK --FIX"
 echo "================"
 uv run ruff check --config ./.ruff.toml --fix ./src/
+
+echo
+echo "==========="
+echo "RUFF FORMAT"
+echo "==========="
+uv run ruff format --config ./.ruff.toml ./src/ # ruff config in .ruff.toml
 
 echo
 echo "====="
