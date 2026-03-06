@@ -16,13 +16,13 @@ echo
 echo "==========="
 echo "RUFF FORMAT"
 echo "==========="
-uv run ruff format ./src/  # ruff config in .ruff.toml
+uv run ruff format --config ./.ruff.toml ./src/ # ruff config in .ruff.toml
 
 echo
 echo "================"
 echo "RUFF CHECK --FIX"
 echo "================"
-uv run ruff check --fix ./src/
+uv run ruff check --config ./.ruff.toml --fix ./src/
 
 echo
 echo "====="
