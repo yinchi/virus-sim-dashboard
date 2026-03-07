@@ -35,13 +35,15 @@ On MacOS, it is highly recommended to install Homebrew.  Follow the instructions
 ```sh
 brew install uv
 ```
-You can read more about the `uv` Homebrew formula [here](https://formulae.brew.sh/formula/uv).
+
+You can read more about the `uv` [Homebrew formula here](https://formulae.brew.sh/formula/uv).
 
 #### Linux (Debian/Ubuntu)
 
 ```sh
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
+
 Follow the instructions in the terminal output to ensure `$HOME/.local/bin` is in your `$PATH` variable.
 
 ### Step 2: Obtain project files
@@ -56,8 +58,8 @@ Otherwise, download the ZIP file containing the project code and extract it:
 
 ![Screenshot of GitHub.com interface](img/git_download.png)
 
-
 ### Step 3: launch the dashboard
+
 Open the newly created project directory in a terminal and execute the following commands:
 
 ```sh
@@ -65,7 +67,7 @@ uv sync
 uv run dashboard -H 0.0.0.0 --no-debug
 ```
 
-The first command sets up and/or updates the Python virtual environment for the project, while the second launches the dashboard server locally at http://localhost:8050.
+The first command sets up and/or updates the Python virtual environment for the project, while the second launches the dashboard server locally at <http://localhost:8050>.
 
 > [!NOTE]
 > If port 8050 is already in use, add `-p <port>` to the `uv run` command above.
