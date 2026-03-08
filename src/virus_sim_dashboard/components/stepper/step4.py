@@ -43,7 +43,7 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
         yield jitter_controls()
         with dmc.Group(None, gap="md"):
             yield dmc.Button("Previous", id=step4_ids.BTN_PREV)
-            yield dmc.Button("Next", id=step4_ids.BTN_NEXT, disabled=True)  # TODO: Step 5
+            yield dmc.Button("Next", id=step4_ids.BTN_NEXT, disabled=True)
     return ret
 
 

@@ -17,7 +17,6 @@ from virus_sim_dashboard.util import COPY, NBSP, NDASH
 @composition
 def layout() -> Generator[DashComponent, None, DashComponent]:
     """Dash app layout (root component)."""
-    # TODO: Replace placeholder with actual dashboard components
     with dmc.MantineProvider() as ret:
         with dmc.AppShell(
             None,
