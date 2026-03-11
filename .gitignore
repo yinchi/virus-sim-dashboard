@@ -17,3 +17,6 @@ __pycache__/
 # Private data
 private/
 secret/
+
+# Temp Excel files
+*.xlsx#

@@ -35,11 +35,8 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
                     "and run the simulation without going through the manual configuration steps."
                 )
             with dmc.Group(None, gap="md", m=0, p=0):
-                yield dcc.Upload(
-                    id="import-file-input",
-                    accept=".xlsx",
-                )
-                yield dmc.Button("Import and run simulation", id="import-button", size="xl")
+                with dcc.Upload(id="import-file-input", accept=".xlsx"):
+                    yield dmc.Button("Import and run simulation", id="import-button", size="xl")
             with dmc.Stack(None, gap="md", m=0, p=0):
                 yield dmc.Title("Simulation Progress", order=3)
                 with dmc.Group(None, gap="md", m=0, p=0):
