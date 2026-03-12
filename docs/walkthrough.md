@@ -63,7 +63,7 @@ For each label, a summary is shown including a probability plot of the fitted di
 
 Eventually, there will be two options, to upload an Excel file defining the scenario (two columns with dates and daily arrival numbers, respectively), or to generate a scenario from a set of parameters.  **Currently, only the first option is implemented.**
 
-![alt text](image.png)
+![alt text](img/dashboard_step4.png)
 
 1. Click the green button to download the example scenario.
 2. Upload the scenario Excel file using the "Upload config" button.  The scenario parameters will be shown on screen.
