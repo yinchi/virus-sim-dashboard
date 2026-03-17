@@ -169,7 +169,7 @@ def step5_on_simulate(
     # Simulate a long-running process with progress updates
 
     n_runs = 30
-    env_factory = EnvironmentFactory(main_store_data)
+    env_factory = EnvironmentFactory.from_main_store(main_store_data)
     results = sim_multiple(env_factory, n_runs=n_runs, set_progress=set_progress)
 
     # Return the simulation results data (to be stored in dcc.Store)

@@ -659,12 +659,24 @@ class EnvironmentFactory:
     for patient generation and environment setup.
     """
 
-    def __init__(self, main_store_data: dict):
-        self.patients_info = PatientsInfo.from_main_store(main_store_data)
-        self.scenario = Scenario.from_main_store(main_store_data)
+    def __init__(self, patients_info: PatientsInfo, scenario: Scenario):
+        self.patients_info = patients_info
+        """Parsed patient information from the main store data, used for patient generation."""
+
+        self.scenario = scenario
+        """Parsed scenario information from the main store data, used for environment setup."""
+
         self.random_patient_generator = RandomPatientGenerator(
             gim_info=self.patients_info.gim_info, icu_info=self.patients_info.icu_info
         )
+        """RandomPatientGenerator instance initialized with the parsed patient information."""
+
+    @classmethod
+    def from_main_store(cls, main_store_data: dict) -> typing.Self:
+        """Create an EnvironmentFactory from the dashboard's main store data."""
+        patients_info = PatientsInfo.from_main_store(main_store_data)
+        scenario = Scenario.from_main_store(main_store_data)
+        return cls(patients_info=patients_info, scenario=scenario)
 
     def create_environment(self) -> Environment:
         """Create a new simulation environment."""
