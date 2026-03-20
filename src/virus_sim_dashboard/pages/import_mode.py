@@ -6,16 +6,27 @@ the export.py module, used by the main dashboard.
 """
 
 import typing
-from collections.abc import Generator
+from base64 import b64decode
+from collections.abc import Callable, Generator
+from io import BytesIO
 
 import dash
 import dash_mantine_components as dmc
-from dash import dcc
+import diskcache
+import openpyxl as oxl
+from dash import DiskcacheManager, Input, NoUpdate, Output, Patch, State, callback, dcc
 from dash.development.base_component import Component as DashComponent
 from dash_compose import composition
 from plotly import graph_objects as go
 
+from virus_sim_dashboard.components.common import import_mode_ids
 from virus_sim_dashboard.config import config
+from virus_sim_dashboard.sim import (
+    EnvironmentFactory,
+    SimMultipleResult,
+    get_quantiles,
+    sim_multiple,
+)
 from virus_sim_dashboard.util import DEFAULT_FIGURE_LAYOUT
 
 dash.register_page(__name__, path="/import")
@@ -35,12 +46,19 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
                     "and run the simulation without going through the manual configuration steps."
                 )
             with dmc.Group(None, gap="md", m=0, p=0):
-                with dcc.Upload(id="import-file-input", accept=".xlsx"):
-                    yield dmc.Button("Import and run simulation", id="import-button", size="xl")
-            with dmc.Stack(None, gap="md", m=0, p=0):
+                with dcc.Upload(id=import_mode_ids.UPLOAD_FILE_INPUT, accept=".xlsx"):
+                    yield dmc.Button("Import and run simulation", size="xl")
+            with dmc.Stack(
+                None,
+                id=import_mode_ids.STACK_SIM_PROGRESS,
+                gap="md",
+                m=0,
+                p=0,
+                style={"display": "none"},
+            ):
                 yield dmc.Title("Simulation Progress", order=3)
                 with dmc.Group(None, gap="md", m=0, p=0):
-                    yield dmc.Text("Waiting for file...", id="import-mode-progress-text")
+                    yield dmc.Text("Waiting for file...", id=import_mode_ids.TEXT_SIM_PROGRESS)
                     yield dmc.Progress(
                         color="blue",
                         size="xl",
@@ -49,15 +67,17 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
                         # to show an indeterminate progress bar
                         value=100,
                         animated=True,
-                        id="import-mode-progress",
+                        id=import_mode_ids.PROGRESS_SIM_PROGRESS,
                     )
-            yield dcc.Store(id="store-import-mode-sim-results")  # Store for simulation results
+            yield dcc.Store(
+                id=import_mode_ids.STORE_SIMULATION_RESULTS
+            )  # Store for simulation results
 
             with dmc.Stack(
                 None,
-                id="stack-import-mode-sim-results",
+                id=import_mode_ids.STACK_SIM_RESULTS,
                 gap="md",
-                # style={"display": "none"},  # hide until we have results to show
+                style={"display": "none"},  # hide until we have results to show
             ):
                 yield dmc.Title("Simulation Results", order=3)
                 yield dmc.MultiSelect(
@@ -66,12 +86,12 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
                     data=[{"label": "0+", "value": "0+"}],
                     value=["0+"],
                     label="Filter by Age Groups",
-                    id="multiselect-import-mode-sim-output-groupings",
+                    id=import_mode_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS,
                     placeholder="Click here to select age groups",
                 )
                 yield dmc.Button(
                     "Select All",
-                    id="btn-import-mode-output-groupings-all",
+                    id=import_mode_ids.BTN_OUTPUT_GROUPINGS_ALL,
                 )
                 yield dmc.Title("GIM Beds Occupancy (selected age groups)", order=4)
 
@@ -79,7 +99,7 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
                 layout_gim["title"]["text"] = "GIM Beds Occupancy (daily maximum)"
                 figure_gim = go.Figure(layout=layout_gim)
                 yield dcc.Graph(
-                    id={"type": "graph", "index": "import-mode-gim-beds-occupancy"},
+                    id=import_mode_ids.GRAPH_GIM_BEDS_OCCUPANCY,
                     figure=figure_gim,
                 )
 
@@ -89,7 +109,7 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
                 layout_icu["title"]["text"] = "ICU Beds Occupancy (daily maximum)"
                 figure_icu = go.Figure(layout=layout_icu)
                 yield dcc.Graph(
-                    id={"type": "graph", "index": "import-mode-icu-beds-occupancy"},
+                    id=import_mode_ids.GRAPH_ICU_BEDS_OCCUPANCY,
                     figure=figure_icu,
                 )
 
@@ -97,7 +117,231 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
                     yield dmc.Button(
                         "Download simulation results (.xlsx)",
                         disabled=True,
-                        id="btn-import-mode-download-sim-results",
+                        id=import_mode_ids.BTN_DOWNLOAD_SIM_RESULTS,
                     )
-                    yield dcc.Download(id="download-import-mode-sim-results")
+                    yield dcc.Download(id=import_mode_ids.DOWNLOAD_SIM_RESULTS)
     return ret
+
+
+@callback(
+    Output(import_mode_ids.STORE_SIMULATION_RESULTS, "data"),  # dict
+    Output(import_mode_ids.STACK_SIM_PROGRESS, "style"),
+    Output(import_mode_ids.TEXT_SIM_PROGRESS, "children"),
+    Output(import_mode_ids.PROGRESS_SIM_PROGRESS, "animated"),
+    Output(import_mode_ids.PROGRESS_SIM_PROGRESS, "value"),
+    Input(import_mode_ids.UPLOAD_FILE_INPUT, "contents"),
+    prevent_initial_call=True,
+    background=True,  # run in background to avoid blocking UI
+    manager=DiskcacheManager(
+        diskcache.Cache("./.dash_cache"),
+    ),
+    running=[
+        (Output(import_mode_ids.UPLOAD_FILE_INPUT, "disabled"), True, False),
+        (
+            Output(import_mode_ids.STACK_SIM_PROGRESS, "style"),
+            {"display": "flex"},
+            {"display": "none"},
+        ),
+        (
+            Output(import_mode_ids.STACK_SIM_RESULTS, "style"),
+            {"display": "none"},
+            {"display": "flex"},
+        ),
+    ],
+    progress=[
+        Output(import_mode_ids.TEXT_SIM_PROGRESS, "children"),
+        Output(import_mode_ids.PROGRESS_SIM_PROGRESS, "value"),
+        Output(import_mode_ids.PROGRESS_SIM_PROGRESS, "animated"),
+    ],
+    interval=200,  # update progress every 200ms
+)
+def import_and_run_simulation(
+    set_progress: Callable[[tuple[str, float, bool]], None],  # progress_text, progress_pct
+    contents: str,
+):
+    """Callback to import the file and run the simulation."""
+    if contents is None:
+        raise dash.exceptions.PreventUpdate
+
+    # Simulate long-running import and simulation process
+    set_progress(("Importing file...", 0, True))
+
+    content_string = contents.split(",", maxsplit=1)[1]  # Get the base64-encoded content
+    file = BytesIO(b64decode(content_string))
+    wb = oxl.load_workbook(file, data_only=True)
+    env_factory = EnvironmentFactory.from_workbook(wb)
+
+    n_replications = 30  # Number of simulation replications to run
+    set_progress((f"0/{n_replications}", 0, False))  # Start with 0% progress
+
+    def progress_callback(val: tuple[str, float]):
+        progress_str, progress_pct = val
+        set_progress((progress_str, progress_pct, False))
+
+    sim_results = sim_multiple(env_factory, n_replications, progress_callback)
+
+    return (
+        sim_results.to_dict(),  # Store the simulation results as a dict in dcc.Store
+        {"display": "none"},  # hide progress
+        "Simulation complete!",  # update progress text
+        False,  # stop animation
+        100,  # set progress to 100%
+    )
+
+
+@callback(
+    Output(import_mode_ids.STACK_SIM_RESULTS, "style"),
+    Output(import_mode_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS, "data"),
+    Output(import_mode_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS, "value", allow_duplicate=True),
+    Input(import_mode_ids.STORE_SIMULATION_RESULTS, "data"),
+    Input(import_mode_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS, "value"),
+    prevent_initial_call=True,
+)
+def step5_show_sim_results(
+    simulation_results_data: dict,
+    selected_age_groups: list[str],
+) -> tuple[dict, list[dict[str, str]] | NoUpdate, list[str] | NoUpdate]:
+    """Update the results stack with visualizations based on the simulation results."""
+    if simulation_results_data is None:
+        stack_display_style = {"display": "none"}  # No results to show yet
+    else:
+        stack_display_style = {"display": "flex"}  # Show the results stack when we have results
+
+    sim_results = SimMultipleResult.from_dict(simulation_results_data)
+    age_groups = sorted(sim_results.gim[0].columns)
+
+    # If selected age groups is not a subset of available age groups, default to all age groups
+    new_multiselect_data: list[dict[str, str]] | dash.NoUpdate
+    new_multiselect_value: list[str] | dash.NoUpdate
+
+    if not set(selected_age_groups).issubset(set(age_groups)):
+        new_multiselect_data = [{"label": ag, "value": ag} for ag in age_groups]
+        new_multiselect_value = list(age_groups)
+    else:
+        new_multiselect_data = dash.no_update
+        new_multiselect_value = dash.no_update
+
+    return (stack_display_style, new_multiselect_data, new_multiselect_value)
+
+
+@callback(
+    Output(import_mode_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS, "value", allow_duplicate=True),
+    Input(import_mode_ids.BTN_OUTPUT_GROUPINGS_ALL, "n_clicks"),
+    State(import_mode_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS, "data"),
+    prevent_initial_call=True,
+)
+def step5_on_select_all_groupings(
+    _: int,
+    multiselect_data: list[dict[str, str]],
+) -> list[str]:
+    """Handle 'Select All' button click to select all age groups in the multiselect."""
+    return sorted([item["value"] for item in multiselect_data])
+
+
+@callback(
+    Output(import_mode_ids.GRAPH_GIM_BEDS_OCCUPANCY, "figure", allow_duplicate=True),
+    Output(import_mode_ids.GRAPH_ICU_BEDS_OCCUPANCY, "figure", allow_duplicate=True),
+    Input(import_mode_ids.STORE_SIMULATION_RESULTS, "data"),
+    Input(import_mode_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS, "value"),
+    prevent_initial_call=True,
+)
+def step5_update_simulation_graphs(
+    simulation_results_data: dict,
+    selected_age_groups: list[str],
+) -> tuple[go.Figure, go.Figure]:
+    """Update the GIM and ICU occupancy graphs."""
+    figure_gim = Patch()
+    figure_icu = Patch()
+
+    figure_gim["layout"]["title"]["text"] = "GIM Beds Occupancy (selected age groups)"
+    figure_icu["layout"]["title"]["text"] = "ICU Beds Occupancy (selected age groups)"
+
+    if simulation_results_data is None:
+        return figure_gim, figure_icu  # Return empty figures if no data
+
+    results = SimMultipleResult.from_dict(simulation_results_data)
+    try:
+        gim_summary = get_quantiles(results.gim, selected_age_groups)
+        icu_summary = get_quantiles(results.icu, selected_age_groups)
+
+        figure_gim["data"] = [
+            go.Scatter(
+                x=gim_summary.index,
+                y=gim_summary[0.1],
+                line_width=0,
+                name="Bottom Decile",
+            ),
+            go.Scatter(
+                x=gim_summary.index,
+                y=gim_summary[0.9],
+                line_width=0,
+                name="Top Decile",
+                fill="tonexty",
+                fillcolor="rgba(127,127,255,0.5)",
+            ),
+            go.Scatter(
+                x=gim_summary.index,
+                y=gim_summary[0.25],
+                line_width=0,
+                name="Lower Quartile",
+            ),
+            go.Scatter(
+                x=gim_summary.index,
+                y=gim_summary[0.75],
+                line_width=0,
+                name="Upper Quartile",
+                fill="tonexty",
+                fillcolor="rgba(127,127,255,1)",
+            ),
+            go.Scatter(
+                x=gim_summary.index,
+                y=gim_summary[0.5],
+                line_width=2,
+                line_color="black",
+                name="Median",
+            ),
+        ]
+
+        figure_icu["data"] = [
+            go.Scatter(
+                x=icu_summary.index,
+                y=icu_summary[0.1],
+                line_width=0,
+                name="Bottom Decile",
+            ),
+            go.Scatter(
+                x=icu_summary.index,
+                y=icu_summary[0.9],
+                line_width=0,
+                name="Top Decile",
+                fill="tonexty",
+                fillcolor="rgba(127,127,255,0.5)",
+            ),
+            go.Scatter(
+                x=icu_summary.index,
+                y=icu_summary[0.25],
+                line_width=0,
+                name="Lower Quartile",
+            ),
+            go.Scatter(
+                x=icu_summary.index,
+                y=icu_summary[0.75],
+                line_width=0,
+                name="Upper Quartile",
+                fill="tonexty",
+                fillcolor="rgba(127,127,255,1)",
+            ),
+            go.Scatter(
+                x=icu_summary.index,
+                y=icu_summary[0.5],
+                line_width=2,
+                line_color="black",
+                name="Median",
+            ),
+        ]
+
+        return figure_gim, figure_icu
+    except KeyError:
+        # Fix issue where this callback gets triggered before the multiselect options are
+        # populated (defaulting to "0+"), causing a KeyError in get_quantiles
+        raise dash.exceptions.PreventUpdate

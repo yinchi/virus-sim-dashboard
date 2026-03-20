@@ -15,7 +15,7 @@ from dash_compose import composition
 from plotly import graph_objects as go
 
 from virus_sim_dashboard.components.common import main_ids, step5_ids
-from virus_sim_dashboard.export import export_xlsx
+from virus_sim_dashboard.export_xlsx import export_xlsx
 from virus_sim_dashboard.sim import (
     EnvironmentFactory,
     SimMultipleResult,
