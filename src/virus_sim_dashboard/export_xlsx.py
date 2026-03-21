@@ -192,17 +192,21 @@ def write_xlsx_icu(ws: Worksheet, icu_data: dict):
         ws: The worksheet object to write to.
         icu_data: The dictionary containing the ICU patient data to write.
     """
-    # Write the column headers
+    # Write the column headers.  All are per-label unless specified otherwise in the comments.
+    # See also `icu_headers_no_merge` for the subset of headers that should not be merged
+    # across groups.
     _icu_headers = [
         "Pathway",
         "Label",
         "# Patients",
         "Probability",
-        "Outcome",
-        "Age",
-        "Count",
-        "% total",
-        "% in label",
+        "Outcome",  # per group in the label
+        "Age",  # per group in the label
+        "Count",  # per group in the label
+        "% total",  # per group in the label
+        "% in label",  # per group in the label
+        "Prob_Pre_ICU",  # Probability of stay in GIM bed before ICU transfer (per-label)
+        "Prob_Post_ICU",  # Probability of stay in GIM bed after ICU transfer (per-label)
         "Pre_Distribution",
         "Pre_Param1",
         "Pre_Param2",
@@ -245,6 +249,11 @@ def write_xlsx_icu(ws: Worksheet, icu_data: dict):
 
         ws.cell(row=row_num, column=icu_headers["Probability"], value=label_data["probability"])
         ws.cell(row=row_num, column=icu_headers["Probability"]).number_format = "0.000%"
+
+        ws.cell(row=row_num, column=icu_headers["Prob_Pre_ICU"], value=label_data["prob_pre_icu"])
+        ws.cell(row=row_num, column=icu_headers["Prob_Pre_ICU"]).number_format = "0.000%"
+        ws.cell(row=row_num, column=icu_headers["Prob_Post_ICU"], value=label_data["prob_post_icu"])
+        ws.cell(row=row_num, column=icu_headers["Prob_Post_ICU"]).number_format = "0.000%"
 
         ws.cell(
             row=row_num,

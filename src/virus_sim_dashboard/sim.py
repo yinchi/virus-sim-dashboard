@@ -10,6 +10,9 @@ from itertools import chain
 import pandas as pd
 import reliability.Distributions as dist
 import salabim as s
+from openpyxl import Workbook
+
+from virus_sim_dashboard.import_xlsx import read_xlsx_gim, read_xlsx_icu
 
 LOS_CAP = 100.0  # cap length of stay at 100 days for sanity
 
@@ -659,12 +662,24 @@ class EnvironmentFactory:
     for patient generation and environment setup.
     """
 
-    def __init__(self, main_store_data: dict):
-        self.patients_info = PatientsInfo.from_main_store(main_store_data)
-        self.scenario = Scenario.from_main_store(main_store_data)
+    def __init__(self, patients_info: PatientsInfo, scenario: Scenario):
+        self.patients_info = patients_info
+        """Parsed patient information from the main store data, used for patient generation."""
+
+        self.scenario = scenario
+        """Parsed scenario information from the main store data, used for environment setup."""
+
         self.random_patient_generator = RandomPatientGenerator(
             gim_info=self.patients_info.gim_info, icu_info=self.patients_info.icu_info
         )
+        """RandomPatientGenerator instance initialized with the parsed patient information."""
+
+    @classmethod
+    def from_main_store(cls, main_store_data: dict) -> typing.Self:
+        """Create an EnvironmentFactory from the dashboard's main store data."""
+        patients_info = PatientsInfo.from_main_store(main_store_data)
+        scenario = Scenario.from_main_store(main_store_data)
+        return cls(patients_info=patients_info, scenario=scenario)
 
     def create_environment(self) -> Environment:
         """Create a new simulation environment."""
@@ -672,6 +687,35 @@ class EnvironmentFactory:
             scenario=self.scenario,
             random_patient_generator=self.random_patient_generator,
         )
+
+    @classmethod
+    def from_workbook(cls, wb: Workbook) -> typing.Self:
+        """Create an EnvironmentFactory from an openpyxl Workbook object."""
+        # Read the scenario data from the "Dailies" and "Hourlies" sheets
+        dailies = pd.read_excel(wb, sheet_name="Dailies", engine="openpyxl").set_index("date")[
+            "count"
+        ]
+        hourlies = pd.read_excel(wb, sheet_name="Hourlies", engine="openpyxl").set_index("hour")[
+            "probability"
+        ]
+
+        # Read the jitter value from the "Parameters" sheet
+        jitter = wb["Parameters"]["B1"].value
+
+        # Initialize the scenario object
+        scenario = Scenario(dailies=dailies, hourlies=hourlies, jitter=jitter)
+
+        gim_params = read_xlsx_gim(wb["GIM_patients"])
+        icu_params = read_xlsx_icu(wb["ICU_patients"])
+
+        # Construct a minimal main_store_data dict with the necessary structure for
+        # parsing patient info, and convert it into a PatientsInfo object using the existing
+        # from_main_store method
+        patients_info = PatientsInfo.from_main_store(
+            {"step3": {"los_fit_results": {"icu": icu_params, "gim": gim_params}}}
+        )
+
+        return cls(patients_info=patients_info, scenario=scenario)
 
 
 # endregion

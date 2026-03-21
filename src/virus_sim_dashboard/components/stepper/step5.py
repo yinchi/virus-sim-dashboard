@@ -15,7 +15,7 @@ from dash_compose import composition
 from plotly import graph_objects as go
 
 from virus_sim_dashboard.components.common import main_ids, step5_ids
-from virus_sim_dashboard.export import export_xlsx
+from virus_sim_dashboard.export_xlsx import export_xlsx
 from virus_sim_dashboard.sim import (
     EnvironmentFactory,
     SimMultipleResult,
@@ -169,7 +169,7 @@ def step5_on_simulate(
     # Simulate a long-running process with progress updates
 
     n_runs = 30
-    env_factory = EnvironmentFactory(main_store_data)
+    env_factory = EnvironmentFactory.from_main_store(main_store_data)
     results = sim_multiple(env_factory, n_runs=n_runs, set_progress=set_progress)
 
     # Return the simulation results data (to be stored in dcc.Store)

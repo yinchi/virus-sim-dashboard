@@ -159,3 +159,34 @@ class StepFiveIDs(NamedTuple):
 
 
 step5_ids = StepFiveIDs()
+
+
+class ImportModeIDs(NamedTuple):
+    """Component IDs used in Import Mode."""
+
+    UPLOAD_FILE_INPUT: str = "import-file-input"
+
+    STACK_SIM_PROGRESS: str = "import-mode-stack-sim-progress"
+    TEXT_SIM_PROGRESS: str = "import-mode-progress-text"
+    PROGRESS_SIM_PROGRESS: str = "import-mode-progress-bar"
+
+    STORE_SIMULATION_RESULTS: str = "import-mode-store-simulation-results"
+    STACK_SIM_RESULTS: str = "import-mode-stack-sim-results"
+
+    MULTISELECT_SIM_OUTPUT_GROUPINGS: str = "import-mode-multiselect-sim-output-groupings"
+    BTN_OUTPUT_GROUPINGS_ALL: str = "import-mode-btn-sim-output-groupings-all"
+
+    GRAPH_GIM_BEDS_OCCUPANCY: dict[str, str] = {  # need dict for wildcard callbacks
+        "type": "graph",
+        "id": "import-mode-graph-gim-beds-occupancy",
+    }
+    GRAPH_ICU_BEDS_OCCUPANCY: dict[str, str] = {  # need dict for wildcard callbacks
+        "type": "graph",
+        "id": "import-mode-graph-icu-beds-occupancy",
+    }
+
+    BTN_DOWNLOAD_SIM_RESULTS: str = "import-mode-btn-download-sim-results"
+    DOWNLOAD_SIM_RESULTS: str = "import-mode-download-sim-results"
+
+
+import_mode_ids = ImportModeIDs()

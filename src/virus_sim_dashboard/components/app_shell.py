@@ -17,7 +17,6 @@ from virus_sim_dashboard.util import COPY, NBSP, NDASH
 @composition
 def layout() -> Generator[DashComponent, None, DashComponent]:
     """Dash app layout (root component)."""
-    # TODO: Replace placeholder with actual dashboard components
     with dmc.MantineProvider() as ret:
         with dmc.AppShell(
             None,
@@ -68,6 +67,22 @@ def header_left() -> Generator[DashComponent, None, DashComponent]:
 def header_right() -> Generator[DashComponent, None, DashComponent]:
     """Right side of the header."""
     with dmc.Group(p=0, m=0, gap="xl", align="center") as ret:
+        # Use dcc.Location to get the current URL and hide link to the current page (in callbacks)
+        yield dash.dcc.Location(id="url")
+        yield dmc.Anchor(
+            "Switch to main dashboard",
+            id="main-dashboard-link",
+            c="inherit",
+            href="/",
+            fw="bold",
+        )
+        yield dmc.Anchor(
+            "Switch to import mode",
+            id="import-mode-link",
+            c="inherit",
+            href="/import",
+            fw="bold",
+        )
         yield dmc.Anchor(
             "Documentation ↗️",
             c="inherit",
@@ -105,3 +120,15 @@ def copyright_str():
         "Yin-Chi Chan, Institute for Manufacturing, "
         "University of Cambridge"
     )
+
+
+@dash.callback(
+    dash.Output("main-dashboard-link", "style"),
+    dash.Output("import-mode-link", "style"),
+    dash.Input("url", "pathname"),
+)
+def update_link_styles(pathname):
+    """Update the styles of the navigation links based on the current URL."""
+    main_dashboard_style = {"display": "none"} if pathname == "/" else {}
+    import_mode_style = {"display": "none"} if pathname == "/import" else {}
+    return main_dashboard_style, import_mode_style
