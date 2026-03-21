@@ -27,8 +27,8 @@ def read_xlsx_gim(ws: Worksheet) -> dict[str, typing.Any]:
 
         # How many groups are there for this label? Count the number of merged cells in column A
         n_groups = 1
-        if f"A{curr_row}" in range_sizes:
-            n_groups = range_sizes[f"A{curr_row}"]
+        if ws[f"A{curr_row}"] in range_sizes:
+            n_groups = range_sizes[ws[f"A{curr_row}"]]
 
         # Read the group-specific parameters from columns E to I
         group_params = {}
@@ -40,9 +40,9 @@ def read_xlsx_gim(ws: Worksheet) -> dict[str, typing.Any]:
             )
             group_params[f"{key}"] = {
                 # Probability of this group in the full patient population (GIM + ICU)
-                "p_total": float(ws[f"G{curr_row + group_idx}"].value),
+                "p_total": float(ws[f"H{curr_row + group_idx}"].value),
                 # Probability of this group among patients with the given label
-                "p_in_label": float(ws[f"H{curr_row + group_idx}"].value),
+                "p_in_label": float(ws[f"I{curr_row + group_idx}"].value),
             }
 
         # Advance the current row by the number of groups
@@ -97,8 +97,8 @@ def read_xlsx_icu(ws: Worksheet) -> dict[str, typing.Any]:
 
         # How many groups are there for this label? Count the number of merged cells in column A
         n_groups = 1
-        if f"A{curr_row}" in range_sizes:
-            n_groups = range_sizes[f"A{curr_row}"]
+        if ws[f"A{curr_row}"] in range_sizes:
+            n_groups = range_sizes[ws[f"A{curr_row}"]]
 
         # Read the group-specific parameters from columns E to I
         group_params = {}
@@ -110,9 +110,9 @@ def read_xlsx_icu(ws: Worksheet) -> dict[str, typing.Any]:
             )
             group_params[f"{key}"] = {
                 # Probability of this group in the full patient population (GIM + ICU)
-                "p_total": float(ws[f"G{curr_row + group_idx}"].value),
+                "p_total": float(ws[f"H{curr_row + group_idx}"].value),
                 # Probability of this group among patients with the given label
-                "p_in_label": float(ws[f"H{curr_row + group_idx}"].value),
+                "p_in_label": float(ws[f"I{curr_row + group_idx}"].value),
             }
 
         # Advance the current row by the number of groups
