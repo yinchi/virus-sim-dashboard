@@ -14,6 +14,7 @@ import dash
 import dash_mantine_components as dmc
 import diskcache
 import openpyxl as oxl
+import pandas as pd
 from dash import DiskcacheManager, Input, NoUpdate, Output, Patch, State, callback, dcc
 from dash.development.base_component import Component as DashComponent
 from dash_compose import composition
@@ -345,3 +346,52 @@ def step5_update_simulation_graphs(
         # Fix issue where this callback gets triggered before the multiselect options are
         # populated (defaulting to "0+"), causing a KeyError in get_quantiles
         raise dash.exceptions.PreventUpdate
+
+
+@callback(
+    Output(import_mode_ids.BTN_DOWNLOAD_SIM_RESULTS, "disabled"),
+    Input(import_mode_ids.STORE_SIMULATION_RESULTS, "data"),
+    State(import_mode_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS, "value"),
+    prevent_initial_call=True,
+)
+def step5_update_download_button(
+    simulation_results_data: dict,
+    selected_age_groups: list[str],
+) -> bool:
+    """Enable or disable the 'Download Simulation Results' button."""
+    # Disable if we don't have simulation results or if no age groups are selected
+    return simulation_results_data is None or len(selected_age_groups) == 0
+
+
+@callback(
+    Output(import_mode_ids.DOWNLOAD_SIM_RESULTS, "data"),
+    Input(import_mode_ids.BTN_DOWNLOAD_SIM_RESULTS, "n_clicks"),
+    State(import_mode_ids.STORE_SIMULATION_RESULTS, "data"),
+    State(import_mode_ids.MULTISELECT_SIM_OUTPUT_GROUPINGS, "value"),
+    prevent_initial_call=True,
+)
+def step5_on_download_sim_results(
+    _: int,
+    simulation_results_data: dict,
+    selected_age_groups: list[str],
+) -> dict[str, typing.Any] | NoUpdate:
+    """Handle button click to download the results as an Excel file."""
+    if simulation_results_data is None:
+        return dash.no_update  # No results to download
+    if not selected_age_groups:
+        return dash.no_update  # No age groups selected, so no data to download
+    results = SimMultipleResult.from_dict(simulation_results_data)
+    gim_summary = get_quantiles(results.gim, selected_age_groups)
+    icu_summary = get_quantiles(results.icu, selected_age_groups)
+
+    with BytesIO() as buffer:
+        with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+            gim_summary.to_excel(writer, sheet_name="GIM Beds Occupancy")
+            icu_summary.to_excel(writer, sheet_name="ICU Beds Occupancy")
+        excel_bytes = buffer.getvalue()
+
+    return dcc.send_bytes(
+        excel_bytes,
+        filename=f"simulation_results_{'_'.join(selected_age_groups)}.xlsx",
+        type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
