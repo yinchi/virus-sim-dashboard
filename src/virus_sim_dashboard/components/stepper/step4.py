@@ -7,13 +7,14 @@ from io import BytesIO
 import dash
 import dash_mantine_components as dmc
 import pandas as pd
+import plotly.graph_objects as go
 from dash import Input, Output, State, callback, dcc
 from dash.development.base_component import Component as DashComponent
 from dash_compose import composition
 from plotly import express as px
 
 from virus_sim_dashboard.components.common import main_ids, step4_ids
-from virus_sim_dashboard.util import jsonify
+from virus_sim_dashboard.util import DEFAULT_FIGURE_LAYOUT, jsonify
 
 
 # region layout
@@ -38,8 +39,7 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
                     "Option 2: Scenario fitter tool (coming soon)", value="manual", fz="lg", fw=900
                 )
             yield upload_config_tab()
-            with dmc.TabsPanel(None, value="manual", py="md"):
-                yield dmc.Text("Not yet implemented, coming soon!", c="red")
+            yield manual_config_tab()
         yield jitter_controls()
         with dmc.Group(None, gap="md"):
             yield dmc.Button("Previous", id=step4_ids.BTN_PREV)
@@ -67,12 +67,90 @@ def upload_config_tab() -> Generator[DashComponent, None, DashComponent]:
                 with dcc.Upload(None, id=step4_ids.UPLOAD_SCENARIO_FILE):
                     yield dmc.Button("Upload config", id=step4_ids.BTN_UPLOAD_SCENARIO)
             with dmc.Stack(None, id=step4_ids.STACK_SCENARIO_OPT_UPLOAD, gap="md", m=0, p=0):
-                yield dmc.Title("Scenario parameters", order=3)
-                yield dmc.Title("Daily arrivals", order=4)
-                yield dmc.Text("Daily arrivals graph goes here.")
-                yield dmc.Title("Time-of-day distribution", order=4)
-                yield dmc.Text("Time-of-day distribution graph goes here.")
+                yield dmc.Text("Placeholder")
         yield dcc.Store(id=step4_ids.STORE_UPLOADED_SCENARIO)
+    return ret
+
+
+@composition
+def manual_config_tab() -> Generator[DashComponent, None, DashComponent]:
+    """Contents of the 'Scenario fitter tool' tab in Step 4."""
+    with dmc.TabsPanel(None, value="manual", py="md") as ret:
+        with dmc.Stack(None, gap="md", m=0, p=0):
+            yield dmc.Title("Curve fitting parameters", order=3)
+            with dmc.Group(None, gap="md"):
+                yield dmc.DatePickerInput(
+                    value="01 Aug 2024",
+                    valueFormat="DD MMM YYYY",
+                    label="Start date for arrivals",
+                )
+                yield dmc.DatePickerInput(
+                    value="31 May 2025",
+                    valueFormat="DD MMM YYYY",
+                    label="End date for arrivals",
+                )
+            with dmc.Group(None, gap="md"):
+                yield dmc.Checkbox(
+                    label="Force start date to have zero arrivals",
+                    size="md",
+                )
+                yield dmc.Checkbox(
+                    label="Force end date to have zero arrivals",
+                    size="md",
+                )
+            yield dcc.Graph(
+                figure=go.Figure(layout=DEFAULT_FIGURE_LAYOUT),
+            )
+            with dmc.TypographyStylesProvider():
+                yield dcc.Markdown(
+                    children="""\
+#### Fitted curve parameters
+
+- **Peak date**: 01 Jan 2025 (42.0 days from start date)
+- **Peak value**: 30.0 arrivals/day
+- **Start value**: 0.0 arrivals/day
+- **End value**: 0.0 arrivals/day"""
+                )
+            yield dmc.Button("Apply fitted parameters to scenario")
+            yield dmc.Title("Scenario parameters", order=3)
+            with dmc.Group(None, gap="md"):
+                yield dmc.DatePickerInput(
+                    value="01 Aug 2024",
+                    valueFormat="DD MMM YYYY",
+                    label="Start date for arrivals",
+                )
+                yield dmc.DatePickerInput(
+                    value="31 May 2025",
+                    valueFormat="DD MMM YYYY",
+                    label="End date for arrivals",
+                )
+                yield dmc.DatePickerInput(
+                    value="01 Jan 2025",
+                    valueFormat="DD MMM YYYY",
+                    label="Peak date for arrivals",
+                )
+            with dmc.Group(None, gap="md"):
+                yield dmc.NumberInput(
+                    value=30,
+                    label="Peak value (arrivals/day)",
+                    min=0,
+                    allowNegative=False,
+                    allowLeadingZeros=False,
+                )
+                yield dmc.NumberInput(
+                    value=0,
+                    label="Start value (arrivals/day)",
+                    min=0,
+                    allowNegative=False,
+                    allowLeadingZeros=False,
+                )
+                yield dmc.NumberInput(
+                    value=0,
+                    label="End value (arrivals/day)",
+                    min=0,
+                    allowNegative=False,
+                    allowLeadingZeros=False,
+                )
     return ret
 
 
