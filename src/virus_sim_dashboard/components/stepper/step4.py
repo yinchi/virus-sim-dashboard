@@ -35,9 +35,7 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
                 yield dmc.TabsTab(
                     "Option 1: Upload scenario config", value="upload", fz="lg", fw=900
                 )
-                yield dmc.TabsTab(
-                    "Option 2: Scenario fitter tool (coming soon)", value="manual", fz="lg", fw=900
-                )
+                yield dmc.TabsTab("Option 2: Scenario fitter tool", value="manual", fz="lg", fw=900)
             yield upload_config_tab()
             yield manual_config_tab()
         yield jitter_controls()
@@ -60,15 +58,15 @@ def upload_config_tab() -> Generator[DashComponent, None, DashComponent]:
             with dmc.Group(None, gap="md"):
                 yield dmc.Button(
                     "Download example config",
-                    id=step4_ids.BTN_DOWNLOAD_EXAMPLE_SCENARIO,
+                    id=step4_ids.OPT_UPLOAD_BTN_DOWNLOAD_EXAMPLE,
                     color="green",
                 )
-                yield dcc.Download(id=step4_ids.DOWNLOAD_EXAMPLE_SCENARIO)
-                with dcc.Upload(None, id=step4_ids.UPLOAD_SCENARIO_FILE):
-                    yield dmc.Button("Upload config", id=step4_ids.BTN_UPLOAD_SCENARIO)
-            with dmc.Stack(None, id=step4_ids.STACK_SCENARIO_OPT_UPLOAD, gap="md", m=0, p=0):
+                yield dcc.Download(id=step4_ids.OPT_UPLOAD_DOWNLOAD_EXAMPLE)
+                with dcc.Upload(None, id=step4_ids.OPT_UPLOAD_UPLOAD):
+                    yield dmc.Button("Upload config", id=step4_ids.OPT_UPLOAD_BTN_UPLOAD)
+            with dmc.Stack(None, id=step4_ids.OPT_UPLOAD_STACK_SCENARIO, gap="md", m=0, p=0):
                 yield dmc.Text("Placeholder")
-        yield dcc.Store(id=step4_ids.STORE_UPLOADED_SCENARIO)
+        yield dcc.Store(id=step4_ids.OPT_UPLOAD_STORE_SCENARIO, data=None)
     return ret
 
 
@@ -80,57 +78,74 @@ def manual_config_tab() -> Generator[DashComponent, None, DashComponent]:
             yield dmc.Title("Curve fitting parameters", order=3)
             with dmc.Group(None, gap="md"):
                 yield dmc.DatePickerInput(
+                    id=step4_ids.OPT_MANUAL_DPICKER_FIT_START,
                     value="01 Aug 2024",
                     valueFormat="DD MMM YYYY",
                     label="Start date for arrivals",
                 )
                 yield dmc.DatePickerInput(
+                    id=step4_ids.OPT_MANUAL_DPICKER_FIT_END,
                     value="31 May 2025",
                     valueFormat="DD MMM YYYY",
                     label="End date for arrivals",
                 )
             with dmc.Group(None, gap="md"):
                 yield dmc.Checkbox(
+                    id=step4_ids.OPT_MANUAL_CHECKBOX_ZERO_START,
                     label="Force start date to have zero arrivals",
                     size="md",
                 )
                 yield dmc.Checkbox(
+                    id=step4_ids.OPT_MANUAL_CHECKBOX_ZERO_END,
                     label="Force end date to have zero arrivals",
                     size="md",
                 )
-            yield dcc.Graph(
-                figure=go.Figure(layout=DEFAULT_FIGURE_LAYOUT),
-            )
-            with dmc.TypographyStylesProvider():
-                yield dcc.Markdown(
-                    children="""\
+            with dmc.Group(None, gap="md"):
+                yield dmc.Button("Fit to data", id=step4_ids.OPT_MANUAL_BTN_FIT_CURVE)
+            with dmc.Stack(
+                None,
+                id=step4_ids.OPT_MANUAL_STACK_FIT_RESULTS,
+                gap="md",
+                m=0,
+                p=0,
+                style={"display": "none"},
+            ):
+                with dmc.TypographyStylesProvider():
+                    yield dcc.Markdown(
+                        children="""\
 #### Fitted curve parameters
 
 - **Peak date**: 01 Jan 2025 (42.0 days from start date)
 - **Peak value**: 30.0 arrivals/day
 - **Start value**: 0.0 arrivals/day
 - **End value**: 0.0 arrivals/day"""
+                    )
+                yield dmc.Button(
+                    "Apply fitted parameters to scenario", id=step4_ids.OPT_MANUAL_BTN_APPLY_FIT
                 )
-            yield dmc.Button("Apply fitted parameters to scenario")
             yield dmc.Title("Scenario parameters", order=3)
             with dmc.Group(None, gap="md"):
                 yield dmc.DatePickerInput(
+                    id=step4_ids.OPT_MANUAL_DPICKER_START,
                     value="01 Aug 2024",
                     valueFormat="DD MMM YYYY",
                     label="Start date for arrivals",
                 )
                 yield dmc.DatePickerInput(
+                    id=step4_ids.OPT_MANUAL_DPICKER_END,
                     value="31 May 2025",
                     valueFormat="DD MMM YYYY",
                     label="End date for arrivals",
                 )
                 yield dmc.DatePickerInput(
+                    id=step4_ids.OPT_MANUAL_DPICKER_PEAK,
                     value="01 Jan 2025",
                     valueFormat="DD MMM YYYY",
                     label="Peak date for arrivals",
                 )
             with dmc.Group(None, gap="md"):
                 yield dmc.NumberInput(
+                    id=step4_ids.OPT_MANUAL_NUMINPUT_PEAK,
                     value=30,
                     label="Peak value (arrivals/day)",
                     min=0,
@@ -138,6 +153,7 @@ def manual_config_tab() -> Generator[DashComponent, None, DashComponent]:
                     allowLeadingZeros=False,
                 )
                 yield dmc.NumberInput(
+                    id=step4_ids.OPT_MANUAL_NUMINPUT_START,
                     value=0,
                     label="Start value (arrivals/day)",
                     min=0,
@@ -145,12 +161,30 @@ def manual_config_tab() -> Generator[DashComponent, None, DashComponent]:
                     allowLeadingZeros=False,
                 )
                 yield dmc.NumberInput(
+                    id=step4_ids.OPT_MANUAL_NUMINPUT_END,
                     value=0,
                     label="End value (arrivals/day)",
                     min=0,
                     allowNegative=False,
                     allowLeadingZeros=False,
                 )
+            # Main plot for the fitted and scenario daily arrivals curve
+            yield dcc.Graph(
+                figure=go.Figure(layout=DEFAULT_FIGURE_LAYOUT),
+            )
+            # Time-of-day distribution plot
+            with dmc.Stack(None, gap="md", m=0, p=0):
+                yield dmc.Title("Time-of-day distribution", order=4)
+                yield dmc.Text(
+                    'Select "Fit to data" above to fit a time-of-day distribution to the '
+                    "provided data.",
+                    c="red",
+                )
+                yield dcc.Graph(
+                    figure=go.Figure(layout=DEFAULT_FIGURE_LAYOUT),
+                    style={"display": "none"},
+                )
+            yield dcc.Store(id=step4_ids.OPT_MANUAL_STORE_FIT_RESULTS, data=None)
     return ret
 
 
@@ -202,8 +236,8 @@ def step4_on_prev(
 
 
 @callback(
-    Output(step4_ids.DOWNLOAD_EXAMPLE_SCENARIO, "data"),
-    Input(step4_ids.BTN_DOWNLOAD_EXAMPLE_SCENARIO, "n_clicks"),
+    Output(step4_ids.OPT_UPLOAD_DOWNLOAD_EXAMPLE, "data"),
+    Input(step4_ids.OPT_UPLOAD_BTN_DOWNLOAD_EXAMPLE, "n_clicks"),
     prevent_initial_call=True,
 )
 def download_example_scenario(_: int) -> dict:
@@ -216,9 +250,9 @@ def download_example_scenario(_: int) -> dict:
 
 
 @callback(
-    Output(step4_ids.STORE_UPLOADED_SCENARIO, "data"),
-    Input(step4_ids.UPLOAD_SCENARIO_FILE, "contents"),
-    State(step4_ids.UPLOAD_SCENARIO_FILE, "filename"),
+    Output(step4_ids.OPT_UPLOAD_STORE_SCENARIO, "data"),
+    Input(step4_ids.OPT_UPLOAD_UPLOAD, "contents"),
+    State(step4_ids.OPT_UPLOAD_UPLOAD, "filename"),
     prevent_initial_call=True,
 )
 def handle_uploaded_scenario(contents: str | None, filename: str | None) -> dict | None:
@@ -252,8 +286,8 @@ def handle_uploaded_scenario(contents: str | None, filename: str | None) -> dict
 
 
 @callback(
-    Output(step4_ids.STACK_SCENARIO_OPT_UPLOAD, "children"),
-    Input(step4_ids.STORE_UPLOADED_SCENARIO, "data"),
+    Output(step4_ids.OPT_UPLOAD_STACK_SCENARIO, "children"),
+    Input(step4_ids.OPT_UPLOAD_STORE_SCENARIO, "data"),
 )
 @composition
 def update_scenario_opt_upload_stack(
@@ -278,7 +312,7 @@ def update_scenario_opt_upload_stack(
     with dmc.Stack(None, gap="md", m=0, p=0) as ret:
         yield dmc.Title("Scenario parameters", order=3)
         yield dcc.Graph(
-            id=step4_ids.GRAPH_DAILIES_OPT_UPLOAD,
+            id=step4_ids.OPT_UPLOAD_GRAPH_DAILIES,
             figure=px.line(
                 dailies,
                 x=dailies.index,
@@ -288,7 +322,7 @@ def update_scenario_opt_upload_stack(
             ),
         )
         yield dcc.Graph(
-            id=step4_ids.GRAPH_HOURLIES_OPT_UPLOAD,
+            id=step4_ids.OPT_UPLOAD_GRAPH_HOURLIES,
             figure=px.line(
                 hourlies,
                 x=hourlies.index,
@@ -302,7 +336,7 @@ def update_scenario_opt_upload_stack(
 
 @callback(
     Output(step4_ids.BTN_NEXT, "disabled"),
-    Input(step4_ids.STORE_UPLOADED_SCENARIO, "data"),
+    Input(step4_ids.OPT_UPLOAD_STORE_SCENARIO, "data"),
     Input(step4_ids.TABS_CONFIG_OPTION, "value"),
 )
 def update_next_button_disabled(uploaded_data: dict | None, tab_value: str | None) -> bool:
@@ -318,7 +352,7 @@ def update_next_button_disabled(uploaded_data: dict | None, tab_value: str | Non
     Output(main_ids.MAIN_STORE, "data", allow_duplicate=True),
     Input(step4_ids.BTN_NEXT, "n_clicks"),
     State(step4_ids.TABS_CONFIG_OPTION, "value"),
-    State(step4_ids.STORE_UPLOADED_SCENARIO, "data"),
+    State(step4_ids.OPT_UPLOAD_STORE_SCENARIO, "data"),
     State(step4_ids.NUMINPUT_JITTER, "value"),
     State(main_ids.MAIN_STORE, "data"),
     prevent_initial_call=True,
