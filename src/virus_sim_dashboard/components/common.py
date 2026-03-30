@@ -127,6 +127,9 @@ class StepFourIDs(NamedTuple):
     OPT_MANUAL_NUMINPUT_PEAK: str = "step4-numinput-peak-opt-manual"
     OPT_MANUAL_NUMINPUT_START: str = "step4-numinput-start-opt-manual"
     OPT_MANUAL_NUMINPUT_END: str = "step4-numinput-end-opt-manual"
+    OPT_MANUAL_NUMINPUT_CONCENTRATION: str = "step4-numinput-concentration-opt-manual"
+    OPT_MANUAL_STORE_DAILIES: str = "step4-store-dailies-opt-manual"
+    OPT_MANUAL_STORE_HOURLIES: str = "step4-store-hourlies-opt-manual"
 
     OPT_MANUAL_GRAPH_DAILIES: dict[str, str] = {  # need dict for wildcard callbacks
         "type": "graph",
@@ -136,6 +139,7 @@ class StepFourIDs(NamedTuple):
         "type": "graph",
         "id": "step4-hourlies-opt-manual",
     }
+    OPT_MANUAL_TEXT_NO_HOURLIES: str = "step4-text-no-hourlies-opt-manual"
 
 
 step4_ids = StepFourIDs()
