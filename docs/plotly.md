@@ -8,7 +8,7 @@
 - In pan mode, click and drag within the plot area to pan the plot.
 - Double-click within the plot area to reset the zoom level.
 
-### Notes:
+## Notes
 
 - Clicking on a legend item will hide that item.  As Plotly is filling in the area between **pairs** of plot items (for some plots), **this may cause unintended behaviour**.
 - Saving a plot as an image will use the current dashboard colour scheme (light/dark). Use the toggle in the dashboard header to change this setting.

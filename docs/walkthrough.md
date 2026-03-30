@@ -24,7 +24,7 @@ Beds are divided into GIM (general internal medicine) beds and ICU beds.  Patien
 >
 > Cases are classified as community-acquired if the string "community" (case-insensitive) occurs **anywhere** in the Acquisition column for the corresponding spreadsheet row.  Patient are classified as deceased if the Summary column is "dead" or "deceased" (case-insensitive), or survived otherwise.
 
-4. If the uploaded file is valid, the "Next" button should turn blue, click it to proceed to Step 2.
+1. If the uploaded file is valid, the "Next" button should turn blue, click it to proceed to Step 2.
 
 ## Step 2: Patient settings
 
@@ -57,7 +57,7 @@ For each label, a summary is shown including a probability plot of the fitted di
 >
 > See the documentation for the [reliability Python library](https://reliability.readthedocs.io/en/latest/Creating%20and%20plotting%20distributions.html) if using custom distributions.  We will provide full instructions once this feature is available.
 
-5. Click "Next" to proceed to Step 4.
+1. Click "Next" to proceed to Step 4.
 
 ## Step 4: Arrival Scenario definition
 
@@ -69,7 +69,7 @@ Eventually, there will be two options, to upload an Excel file defining the scen
 2. Upload the scenario Excel file using the "Upload config" button.  The scenario parameters will be shown on screen.
 3. Optionally, adjust the jitter parameter to add randomness to the simulation.  If jitter is non-zero, then the number of arrivals for a given day can vary from the specified value by up to the specified jitter percentage.
 
-# Step 5: Simulation
+## Step 5: Simulation
 
 Click the green button to start the simulation.  After a few seconds, the simulation results should appear.
 

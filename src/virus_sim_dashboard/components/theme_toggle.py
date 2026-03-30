@@ -55,7 +55,7 @@ GRAPH_IDS = {
 
 @callback(
     Output(GRAPH_IDS, "figure"),
-    Input(main_ids.STEPPER, "active"),  # Dummy input to trigger on step change
+    Input(main_ids.STEPPER, "active", allow_optional=True),  # Dummy input to trigger on step change
     Input(THEME_TOGGLE_ID, "checked"),
     State(GRAPH_IDS, "id"),
 )

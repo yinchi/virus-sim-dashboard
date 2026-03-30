@@ -1,6 +1,6 @@
 # CUH respiratory viruses modelling (web app)
 
-![](assets/logos.png)
+![Ifm and CUH logos](assets/logos.png)
 
 &copy; 2026 Yin-Chi Chan
 

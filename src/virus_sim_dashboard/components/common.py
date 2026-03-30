@@ -94,33 +94,52 @@ class StepFourIDs(NamedTuple):
     BTN_NEXT: str = "step4-btn-next"
 
     TABS_CONFIG_OPTION: str = "step4-tabs-config-option"
-    BTN_DOWNLOAD_EXAMPLE_SCENARIO: str = "step4-button-download-example-scenario"
-    DOWNLOAD_EXAMPLE_SCENARIO: str = "step4-download-example-scenario"
-    UPLOAD_SCENARIO_FILE: str = "step4-upload-scenario-file"
-    BTN_UPLOAD_SCENARIO: str = "step4-btn-upload-scenario"
-    STORE_UPLOADED_SCENARIO: str = "step4-store-uploaded-scenario"
-
-    STACK_SCENARIO_OPT_UPLOAD: str = "step4-stack-scenario-opt-upload"
-    STACK_SCENARIO_OPT_MANUAL: str = "step4-stack-scenario-opt-manual"
-
     NUMINPUT_JITTER: str = "step4-numinput-jitter"
 
-    GRAPH_DAILIES_OPT_UPLOAD: dict[str, str] = {  # need dict for wildcard callbacks
+    OPT_UPLOAD_BTN_DOWNLOAD_EXAMPLE: str = "step4-button-download-example-scenario"
+    OPT_UPLOAD_DOWNLOAD_EXAMPLE: str = "step4-download-example-scenario"
+    OPT_UPLOAD_UPLOAD: str = "step4-upload-scenario-file"
+    OPT_UPLOAD_BTN_UPLOAD: str = "step4-btn-upload-scenario"
+    OPT_UPLOAD_STORE_SCENARIO: str = "step4-store-uploaded-scenario"
+    OPT_UPLOAD_STACK_SCENARIO: str = "step4-stack-scenario-opt-upload"
+
+    OPT_UPLOAD_GRAPH_DAILIES: dict[str, str] = {  # need dict for wildcard callbacks
         "type": "graph",
         "id": "step4-dailies-opt-upload",
     }
-    GRAPH_HOURLIES_OPT_UPLOAD: dict[str, str] = {  # need dict for wildcard callbacks
+    OPT_UPLOAD_GRAPH_HOURLIES: dict[str, str] = {  # need dict for wildcard callbacks
         "type": "graph",
         "id": "step4-hourlies-opt-upload",
     }
-    GRAPH_DAILIES_OPT_MANUAL: dict[str, str] = {  # need dict for wildcard callbacks
+
+    OPT_MANUAL_DPICKER_FIT_START: str = "step4-datepicker-fit-start-opt-manual"
+    OPT_MANUAL_DPICKER_FIT_END: str = "step4-datepicker-fit-end-opt-manual"
+    OPT_MANUAL_CHECKBOX_ZERO_START: str = "step4-checkbox-zero-start-opt-manual"
+    OPT_MANUAL_CHECKBOX_ZERO_END: str = "step4-checkbox-zero-end-opt-manual"
+    OPT_MANUAL_BTN_FIT_CURVE: str = "step4-btn-fit-curve-opt-manual"
+    OPT_MANUAL_STACK_FIT_RESULTS: str = "step4-stack-fit-results-opt-manual"
+    OPT_MANUAL_BTN_APPLY_FIT: str = "step4-btn-apply-fit-opt-manual"
+    OPT_MANUAL_STORE_FIT_RESULTS: str = "step4-store-fit-results-opt-manual"
+
+    OPT_MANUAL_DPICKER_START: str = "step4-datepicker-start-opt-manual"
+    OPT_MANUAL_DPICKER_END: str = "step4-datepicker-end-opt-manual"
+    OPT_MANUAL_DPICKER_PEAK: str = "step4-datepicker-peak-opt-manual"
+    OPT_MANUAL_NUMINPUT_PEAK: str = "step4-numinput-peak-opt-manual"
+    OPT_MANUAL_NUMINPUT_START: str = "step4-numinput-start-opt-manual"
+    OPT_MANUAL_NUMINPUT_END: str = "step4-numinput-end-opt-manual"
+    OPT_MANUAL_NUMINPUT_CONCENTRATION: str = "step4-numinput-concentration-opt-manual"
+    OPT_MANUAL_STORE_DAILIES: str = "step4-store-dailies-opt-manual"
+    OPT_MANUAL_STORE_HOURLIES: str = "step4-store-hourlies-opt-manual"
+
+    OPT_MANUAL_GRAPH_DAILIES: dict[str, str] = {  # need dict for wildcard callbacks
         "type": "graph",
         "id": "step4-dailies-opt-manual",
     }
-    GRAPH_HOURLIES_OPT_MANUAL: dict[str, str] = {  # need dict for wildcard callbacks
+    OPT_MANUAL_GRAPH_HOURLIES: dict[str, str] = {  # need dict for wildcard callbacks
         "type": "graph",
         "id": "step4-hourlies-opt-manual",
     }
+    OPT_MANUAL_TEXT_NO_HOURLIES: str = "step4-text-no-hourlies-opt-manual"
 
 
 step4_ids = StepFourIDs()
@@ -159,3 +178,34 @@ class StepFiveIDs(NamedTuple):
 
 
 step5_ids = StepFiveIDs()
+
+
+class ImportModeIDs(NamedTuple):
+    """Component IDs used in Import Mode."""
+
+    UPLOAD_FILE_INPUT: str = "import-file-input"
+
+    STACK_SIM_PROGRESS: str = "import-mode-stack-sim-progress"
+    TEXT_SIM_PROGRESS: str = "import-mode-progress-text"
+    PROGRESS_SIM_PROGRESS: str = "import-mode-progress-bar"
+
+    STORE_SIMULATION_RESULTS: str = "import-mode-store-simulation-results"
+    STACK_SIM_RESULTS: str = "import-mode-stack-sim-results"
+
+    MULTISELECT_SIM_OUTPUT_GROUPINGS: str = "import-mode-multiselect-sim-output-groupings"
+    BTN_OUTPUT_GROUPINGS_ALL: str = "import-mode-btn-sim-output-groupings-all"
+
+    GRAPH_GIM_BEDS_OCCUPANCY: dict[str, str] = {  # need dict for wildcard callbacks
+        "type": "graph",
+        "id": "import-mode-graph-gim-beds-occupancy",
+    }
+    GRAPH_ICU_BEDS_OCCUPANCY: dict[str, str] = {  # need dict for wildcard callbacks
+        "type": "graph",
+        "id": "import-mode-graph-icu-beds-occupancy",
+    }
+
+    BTN_DOWNLOAD_SIM_RESULTS: str = "import-mode-btn-download-sim-results"
+    DOWNLOAD_SIM_RESULTS: str = "import-mode-download-sim-results"
+
+
+import_mode_ids = ImportModeIDs()

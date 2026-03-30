@@ -450,7 +450,7 @@ def update_los_groups_icu(
 
     table_body_rows = []
 
-    counter = 1
+    # counter = 1
     for age_group in age_groups:
         items = [
             age_group,
@@ -460,7 +460,7 @@ def update_los_groups_icu(
                     "pathway": "icu/survived",
                     "age_group": age_group,
                 },
-                value=counter,
+                value=1,
                 **num_input_opts,
             ),
             dmc.NumberInput(
@@ -469,12 +469,12 @@ def update_los_groups_icu(
                     "pathway": "icu/died",
                     "age_group": age_group,
                 },
-                value=counter + 1,
+                value=1,
                 **num_input_opts,
             ),
         ]
         table_body_rows.append([dmc.TableTd(item) for item in items])
-        counter += 2
+        # counter += 2
     table_body = dmc.TableTbody([dmc.TableTr(row) for row in table_body_rows])
 
     # Return both thead and tbody as children of the table
