@@ -394,8 +394,8 @@ def update_los_groups_gim(
 
     table_body_rows = []
 
-    counter = 1
-    for age_group in age_groups:
+    n_age_groups = len(age_groups)
+    for idx, age_group in enumerate(age_groups):
         items = [
             age_group,
             dmc.NumberInput(
@@ -404,7 +404,7 @@ def update_los_groups_gim(
                     "pathway": "gim/survived",
                     "age_group": age_group,
                 },
-                value=counter,
+                value=idx + 1,
                 **num_input_opts,
             ),
             dmc.NumberInput(
@@ -413,12 +413,11 @@ def update_los_groups_gim(
                     "pathway": "gim/died",
                     "age_group": age_group,
                 },
-                value=counter + 1,
+                value=n_age_groups + idx + 1,
                 **num_input_opts,
             ),
         ]
         table_body_rows.append([dmc.TableTd(item) for item in items])
-        counter += 2
     table_body = dmc.TableTbody([dmc.TableTr(row) for row in table_body_rows])
 
     # Return both thead and tbody as children of the table
@@ -450,7 +449,6 @@ def update_los_groups_icu(
 
     table_body_rows = []
 
-    # counter = 1
     for age_group in age_groups:
         items = [
             age_group,
@@ -474,7 +472,6 @@ def update_los_groups_icu(
             ),
         ]
         table_body_rows.append([dmc.TableTd(item) for item in items])
-        # counter += 2
     table_body = dmc.TableTbody([dmc.TableTr(row) for row in table_body_rows])
 
     # Return both thead and tbody as children of the table
