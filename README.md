@@ -6,4 +6,5 @@
 
 This dashboard was created by Yin-Chi Chan at the Institute for Manufacturing, University of Cambridge for Cambridge University Hospitals (CUH) NHS Foundation Trust.
 
-[Link to documentation](./docs)
+- [Link to documentation](https://github.com/yinchi/virus-sim-dashboard/tree/main/docs)
+- [Quickstart](https://github.com/yinchi/virus-sim-dashboard/blob/main/docs/quickstart.md)
