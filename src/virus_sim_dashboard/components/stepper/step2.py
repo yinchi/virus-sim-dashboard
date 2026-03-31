@@ -171,7 +171,7 @@ def update_daily_arrivals_graph(
         go.Scatter(
             x=counts_df.index,
             y=counts_df["Daily Arrivals"],
-            name="Daily Arrivals",
+            name="Daily Arrivals (Historical)",
             mode="lines",
             line=dict(color="rgba(0,0,255,0.5)", width=1),
         )

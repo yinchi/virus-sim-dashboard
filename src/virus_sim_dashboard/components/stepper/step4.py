@@ -119,7 +119,7 @@ def manual_config_tab() -> Generator[DashComponent, None, DashComponent]:
                 with dmc.TypographyStylesProvider():
                     yield dcc.Markdown(
                         children="""\
-#### Fitted curve parameters
+#### Fitted parameters for historical data
 
 - **Peak date**: 01 Jan 2025 (42.0 days from start date)
 - **Peak value**: 30.0 arrivals/day
@@ -129,7 +129,7 @@ def manual_config_tab() -> Generator[DashComponent, None, DashComponent]:
                 yield dmc.Button(
                     "Apply fitted parameters to scenario", id=step4_ids.OPT_MANUAL_BTN_APPLY_FIT
                 )
-            yield dmc.Title("Scenario parameters", order=3)
+            yield dmc.Title("Parameters for modelled scenario", order=3)
             with dmc.Group(None, gap="md"):
                 yield dmc.DatePickerInput(
                     id=step4_ids.OPT_MANUAL_DPICKER_START,
@@ -316,7 +316,7 @@ def update_scenario_opt_upload_stack(
     """Update the scenario options stack to show graphs based on the uploaded scenario data."""
     if uploaded_data is None:
         with dmc.Stack(None, gap="md", m=0, p=0) as ret:
-            yield dmc.Title("Scenario parameters", order=3)
+            yield dmc.Title("Parameters for modelled scenario", order=3)
             yield dmc.Text("No scenario uploaded yet.", c="red")
         return ret
 
@@ -330,14 +330,14 @@ def update_scenario_opt_upload_stack(
     hourlies = pd.read_feather(hourlies_bytes).set_index("hour")
 
     with dmc.Stack(None, gap="md", m=0, p=0) as ret:
-        yield dmc.Title("Scenario parameters", order=3)
+        yield dmc.Title("Parameters for modelled scenario", order=3)
         yield dcc.Graph(
             id=step4_ids.OPT_UPLOAD_GRAPH_DAILIES,
             figure=px.line(
                 dailies,
                 x=dailies.index,
                 y="count",
-                title="Daily arrivals",
+                title="Daily arrivals (Historical)",
                 labels={"date": "Date", "count": "Number of arrivals"},
             ),
         )
@@ -347,7 +347,7 @@ def update_scenario_opt_upload_stack(
                 hourlies,
                 x=hourlies.index,
                 y="probability",
-                title="Time-of-day distribution",
+                title="Time-of-day distribution (Historical)",
                 labels={"hour": "Hour of day", "probability": "Probability"},
             ),
         )
@@ -466,7 +466,7 @@ def fit_curve_and_update_results(
     ret_children = [
         dmc.TypographyStylesProvider(
             dcc.Markdown(f"""\
-#### Fitted curve parameters
+#### Fitted parameters for historical data
 - **Peak date**: {peak_date_rounded.date()} ({peak_n_days:.1f} days from start date)
 - **Peak value**: {fit_results["y_max"]:.1f} arrivals/day
 - **Start value**: {fit_results.get("y_left", 0.0):.1f} arrivals/day
@@ -505,7 +505,7 @@ def update_hourly_distribution_plot(
     hourlies_df["probability"] = hourlies_df["count"] / hourlies_df["count"].sum()
 
     fig = Patch()
-    fig["layout"]["title"]["text"] = "Time-of-day distribution of arrivals"
+    fig["layout"]["title"]["text"] = "Time-of-day distribution of arrivals (Historical)"
     fig["layout"]["xaxis"]["title"]["text"] = "Hour of day"
     fig["layout"]["yaxis"]["title"]["text"] = "Probability"
     fig["data"] = [
@@ -593,7 +593,7 @@ def update_dailies_plot(
         go.Scatter(
             x=stay_data.index,
             y=stay_data.values,
-            name="Daily arrivals",
+            name="Daily arrivals (Historical)",
         )
     ]
 
