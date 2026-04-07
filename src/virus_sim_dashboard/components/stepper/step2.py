@@ -152,7 +152,7 @@ def update_daily_arrivals_graph(
         }
     ).set_index("Date")
 
-    if show_rolling_avg:
+    if show_rolling_avg and isinstance(rolling_avg_days, int) and rolling_avg_days >= 2:
         counts_df["Rolling Avg"] = (
             counts_df["Daily Arrivals"]
             .rolling(window=rolling_avg_days, min_periods=1, center=True)
@@ -176,7 +176,7 @@ def update_daily_arrivals_graph(
             line=dict(color="rgba(0,0,255,0.5)", width=1),
         )
     )
-    if show_rolling_avg:
+    if show_rolling_avg and "Rolling Avg" in counts_df.columns:
         patched_fig["data"].append(
             go.Scatter(
                 x=counts_df.index,
