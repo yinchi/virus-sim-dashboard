@@ -194,7 +194,7 @@ def handle_stays_file_upload(
         try:
             _, b64_content = contents.split(",", 1)
             decoded_content = b64decode(b64_content)
-            df = pd.read_csv(BytesIO(decoded_content).decode())
+            df = pd.read_csv(BytesIO(decoded_content))
             data, errors = process_patient_stay_data(df)
         except Exception as e:
             data, errors = None, [f"Error parsing CSV file: {str(e)}"]
