@@ -51,7 +51,7 @@ def layout() -> Generator[DashComponent, None, DashComponent]:
         )
         with dmc.Stack(None, gap="md", m=0, p=0):
             yield dmc.Title("Fitting period", order=3)
-            with dmc.Group(None, gap="lg"):
+            with dmc.Group(None, gap="lg", align="flex-start"):
                 yield dmc.DatePickerInput(
                     id=step3_ids.DATEPICKER_START,
                     value="01 Aug 2024",
@@ -230,6 +230,27 @@ def update_config_summary(
   {start_opts_map.get(start_opt_community, start_opt_community)}
 - **Start timestamp for other cases:** {start_opts_map.get(start_opt_other, start_opt_other)}
 """
+
+
+@callback(
+    Output(step3_ids.DATEPICKER_END, "error"),
+    Input(step3_ids.DATEPICKER_START, "value"),
+    Input(step3_ids.DATEPICKER_END, "value"),
+)
+def validate_date_range(
+    start_date_str: str,
+    end_date_str: str,
+) -> str | None:
+    """Validate that the end date is not before the start date."""
+    try:
+        start_date = pd.to_datetime(start_date_str)
+        end_date = pd.to_datetime(end_date_str)
+        if end_date < start_date:
+            return "End date cannot be before start date"
+        return None  # No error
+    except Exception:
+        # E.g. None if user clears the date input, or invalid format
+        raise dash.exceptions.PreventUpdate
 
 
 @callback(
