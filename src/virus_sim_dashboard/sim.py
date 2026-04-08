@@ -12,6 +12,7 @@ import reliability.Distributions as dist
 import salabim as s
 from openpyxl import Workbook
 
+from virus_sim_dashboard.config import LOS_DISTRIBUTION_TYPE
 from virus_sim_dashboard.import_xlsx import read_xlsx_gim, read_xlsx_icu
 
 LOS_CAP = 100.0  # cap length of stay at 100 days for sanity
@@ -110,17 +111,21 @@ def get_p_in_label(
 GroupTuple = tuple[str, str, str]  # (pathway, outcome, age_group)
 
 # Allowed distribution types for length of stay modeling (can be extended as needed)
-LOSDistribution = typing.Union[dist.Lognormal_Distribution]
+LOSDistribution = typing.Union[
+    dist.Lognormal_Distribution,
+    dist.Gamma_Distribution,
+    dist.Weibull_Distribution,
+]
 
 
-def get_dist(dist_name, params) -> LOSDistribution:
-    """Return a distribution object based on the given distribution name and parameters.
-
-    Currently only supports 'Lognormal_3P' distribution, but can be extended to support more types
-    as needed.
-    """
+def get_dist(dist_name: LOS_DISTRIBUTION_TYPE, params) -> LOSDistribution:
+    """Return a distribution object based on the given distribution name and parameters."""
     if dist_name == "Lognormal_3P":
         return dist.Lognormal_Distribution(*params)
+    if dist_name == "Gamma_3P":
+        return dist.Gamma_Distribution(*params)
+    if dist_name == "Weibull_3P":
+        return dist.Weibull_Distribution(*params)
     # TODO: add support for other distributions as needed
     raise ValueError(f"Unsupported distribution: {dist_name}")
 

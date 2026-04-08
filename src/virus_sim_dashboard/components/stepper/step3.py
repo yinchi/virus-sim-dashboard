@@ -10,7 +10,6 @@ import dash_mantine_components as dmc
 import matplotlib
 import pandas as pd
 import plotly.graph_objects as go
-import reliability
 from dash import Input, NoUpdate, Output, State, callback, dcc
 from dash.development.base_component import Component as DashComponent
 from dash_compose import composition
@@ -20,7 +19,11 @@ from pandas import Series
 
 from virus_sim_dashboard.components.common import main_ids, step3_ids
 from virus_sim_dashboard.components.stepper.step2 import START_OPTS, process_stay_data
+from virus_sim_dashboard.config import LOS_DIST, LOS_DISTRIBUTION_CLASSES, LOS_FITTERS
 from virus_sim_dashboard.util import DEFAULT_FIGURE_LAYOUT, jsonify
+
+LOS_DIST_CLASS = LOS_DISTRIBUTION_CLASSES[LOS_DIST]
+LOS_FITTER = LOS_FITTERS[LOS_DIST]
 
 start_opts_map = {opt["value"]: opt["label"] for opt in START_OPTS}
 
@@ -729,7 +732,7 @@ def fit_los_dists_helper(
         }
         los_series: Series[pd.Timedelta] = filtered_data.Discharge - filtered_data.Start
         los_series_days = los_series / DAY
-        fit_result = reliability.Fitters.Fit_Lognormal_3P(
+        fit_result = LOS_FITTER(
             los_series_days.to_numpy(),
             show_probability_plot=True,
             print_results=False,
@@ -741,7 +744,7 @@ def fit_los_dists_helper(
         fig_str = fig_to_b64(ax.figure)
         plt.close(ax.figure)
         los_data_gim[label]["los_fit"] = {
-            "distribution": "Lognormal_3P",
+            "distribution": LOS_DIST,
             "parameters": fit_result.distribution.parameters,
             "pp_plot_b64": fig_str,
         }
@@ -800,7 +803,7 @@ def fit_los_dists_helper(
                 f"Not enough patients ({len(pre_icu_series_days)} < 3) for Pre-ICU LOS fitting "
                 f"in ICU LOS grouping label {label}"
             )
-        fit_result = reliability.Fitters.Fit_Lognormal_3P(
+        fit_result = LOS_FITTER(
             pre_icu_series_days.to_numpy(),
             show_probability_plot=True,
             print_results=False,
@@ -812,7 +815,7 @@ def fit_los_dists_helper(
         fig_str = fig_to_b64(ax.figure)
         plt.close(ax.figure)
         los_data_icu[label]["pre_icu_los_fit"] = {
-            "distribution": "Lognormal_3P",
+            "distribution": LOS_DIST,
             "parameters": fit_result.distribution.parameters,
             "pp_plot_b64": fig_str,
         }
@@ -825,7 +828,7 @@ def fit_los_dists_helper(
                 f"Not enough patients ({len(icu_series_days)} < 3) for ICU LOS fitting "
                 f"in ICU LOS grouping label {label}"
             )
-        fit_result = reliability.Fitters.Fit_Lognormal_3P(
+        fit_result = LOS_FITTER(
             icu_series_days.to_numpy(),
             show_probability_plot=True,
             print_results=False,
@@ -837,7 +840,7 @@ def fit_los_dists_helper(
         fig_str = fig_to_b64(ax.figure)
         plt.close(ax.figure)
         los_data_icu[label]["icu_los_fit"] = {
-            "distribution": "Lognormal_3P",
+            "distribution": LOS_DIST,
             "parameters": fit_result.distribution.parameters,
             "pp_plot_b64": fig_str,
         }
@@ -856,7 +859,7 @@ def fit_los_dists_helper(
                 "error": f"Not enough patients ({len(post_icu_series_days)} < 3) for Post-ICU LOS "
                 f"fitting in ICU LOS grouping label {label}"
             }
-        fit_result = reliability.Fitters.Fit_Lognormal_3P(
+        fit_result = LOS_FITTER(
             post_icu_series_days.to_numpy(),
             show_probability_plot=True,
             print_results=False,
@@ -868,7 +871,7 @@ def fit_los_dists_helper(
         fig_str = fig_to_b64(ax.figure)
         plt.close(ax.figure)
         los_data_icu[label]["post_icu_los_fit"] = {
-            "distribution": "Lognormal_3P",
+            "distribution": LOS_DIST,
             "parameters": fit_result.distribution.parameters,
             "pp_plot_b64": fig_str,
         }
