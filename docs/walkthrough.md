@@ -1,4 +1,4 @@
-# Dashboard walkthrough
+# Walkthrough
 
 The dashboard uses simulation to estimate bed occupancy in a hospital caused by a given respiratory disease (e.g. COVID, influenza, or RSV).
 
@@ -7,75 +7,125 @@ Beds are divided into GIM (general internal medicine) beds and ICU beds.  Patien
 ![patient flowchart](img/flowchart.png)
 (flowchart from [Chan et al. 2023](https://yinchi.github.io/papers/ChanSimulation2023.pdf))
 
-## Instructions
+## Getting started
 
-1. Open the dashboard in your browser.
+See the [Quickstart](quickstart.md) for instructions on downloading the project code and starting your own local instance of the dashboard web server.  The link to the dashboard will be displayed in your terminal:
 
-![Initial dashboard state](img/dashboard_step1.png)
+![running the dashboard](img/quickstart/win11-terminal-2.png)
 
-## Step 1: Upload patient stay data
+## Step 1: Upload patient length-of-stay data
 
-1. Select the disease name from the dropdown menu.  In this example, we shall use "Influenza".  You can also select "Other", in which case a text input field is provided.
-2. Download the example Excel file (green button) containing patient stay data.  Optionally, inspect its contents.
-3. Upload the file again (or provide your own file using the same data format) using the blue button.
+We use historical patient stay data to fit length-of-stay distributions to the various demographic groups and to bootstrap parameters for the scenario creation step (Step 4).  The data can be imported in either Excel (.xlsx) or CSV format.
 
->[!NOTE]
-> The columns present in the example file are the minimum required by the dashboard, extra columns will be ignored.
+First, select the disease which you want to model.  You can select a disease from the drop-down menu or enter a custom name.
+
+![disease name selection](img/walkthrough/1/disease_name.png)
+
+Upload your patient data to the dashboard using the blue button.
+
+> [!NOTE]
+> The patient data file must contain the following columns (case sensitive, exact match only):
 >
-> Cases are classified as community-acquired if the string "community" (case-insensitive) occurs **anywhere** in the Acquisition column for the corresponding spreadsheet row.  Patient are classified as deceased if the Summary column is "dead" or "deceased" (case-insensitive), or survived otherwise.
+> - Age: Patient age in years (integer)
+> - Admission: Patient admission timestamp
+> - Discharge: Patient discharge (or death) timestamp
+> - ICUAdmission: If present, the time when the patient is transferred to ICU.
+> - ICUDischarge: If present, the time when the patient is discharged from ICU (or the time of death if the patient died in ICU).
+> - Readmission: Time of readmission, if any.  If present, the readmission stay is included when computing the overall patient length-of-stay.  For a simple model without readmissions, both this and the next column can be left blank.
+> - ReadmissionDischarge: If readmitted, the discharge timestamp for the additional stay.
+> - FirstPosCollected: The collection timestamp of the first positive sample from the patient.
+> - Acquisition: strings containing "community" (case-insensitive) are categorized as community-acquired cases, while all other string values correspond to non-community-acquired cases.
+> - Summary: Patient outcome. We check whether the value contains the substring "dead" or "deceased" (case-insensitive), allowing us to derive different length-of-stay distributions for surviving and non-surviving patients.
+>
+> Any additional columns will be ignored.
 
-1. If the uploaded file is valid, the "Next" button should turn blue, click it to proceed to Step 2.
+Once the patient length-of-stay data has been uploaded, click "Next".
 
 ## Step 2: Patient settings
 
+![patient settings interface](img/walkthrough/2/settings.png)
+
 For both community-acquired and non-community-acquired cases (e.g. hospital-acquired and transfers), we can choose to start the occupancy period using the admission time, the collection time of the first positive sample, or whichever is earlier/later.  Adjust these settings using the two drop-down menus.
 
-For convenience, a plot of daily patient arrivals is provided which will update based on the above settings.  See the [Plotly graph controls](./plotly.md) guide on how to pan/zoom plots or download a plot as an .png image.
+> [!NOTE]
+> The default settings (Admission time for community-acquired cases, first positive sample time for other cases) are generally recommended.
 
-![Dashboard step 2](img/dashboard_step2.png)
+For reference, a plot of daily admissions, using the chosen settings, is provided.  Use the numerical input field to change the rolling window size.
 
-Click "Next" to advance to Step 3.
+## Step 3: Length-of-Stay fitting
 
->[!NOTE]
-> You can also return to Step 1.  Information entered in each step is retained when navigating between steps unless modified, in which case information in subsequent steps is cleared.  For example, if the user completes Step 2, then returns to Step 1, the entered information in Step 2 is only cleared if the user modifies their Step 1 configuration and clicks "Next" to return to Step 2.
+![length-of-stay fitting interface](img/walkthrough/3/los_fitting1.png)
 
-## Step 3: Length-of-stay fitting
+Use the datepickers to select the fitting period.  Then, define the age group breakpoints (e.g. "16,65" to create three age groups 0-15, 16-64, and 65+, or blank to use a single group for all ages).  The Patient Counts table will show the number of patients in each age group with arrivals within the selected dates, divided by outcome (survived or died).
 
-![Step 3 user interface](img/dashboard_step3.png)
+As shown above, some groupings may contain very few or even no patients.  To address this, we assign **labels** to each group so that all groups with the same label are combined when computing length-of-stay distributions:
 
-1. Only patients will starting timestamps within the fitting period will be considered when fitting distributions to the length-of-stay data.  Adjust the fitting period using the two date pickers in the "Fitting period" section.
-2. Choose the age groups to use for the simulation. For example, we can enter "16, 65" in the input field to split patients into the 0-15, 16-64, and 65+ age groups.
-3. While we can divide patients by both age group and outcome (survived/died) for analysis, in practice some age/outcome groupings may have too few patients (or none at all) to fit a distribution to.  Use the numeric inputs in the "Length-of-Stay Groupings" section to combine age/outcome groupings; groupings with the same **label** are combined when fitting a length-of-stay distribution.  For the example patient stay data, the recommended group labellings are shown below.
-4. Click the "Fit Length-of-Stay Distributions" button.
+![length-of-stay fitting interface](img/walkthrough/3/los_fitting2.png)
 
-![Step 3 user interface](img/dashboard_step3_2.png)
+In the example above, the 38 patients who died after a GIM-only stay are all assigned **GIM label 4**, while any patient with an ICU stay are assigned **ICU label 1**.
 
-For each label, a summary is shown including a probability plot of the fitted distribution. In general, the closer the plotted points are to a straight line, the better the fit.  In the example above, the fitted distribution for GIM-only patients that die in hospital is a [lognormal distribution](https://en.wikipedia.org/wiki/Log-normal_distribution) with shift parameter $\gamma$, such that if $X$ is the length-of-stay, $\log(X-\gamma)$ has mean $\mu$ and standard deviation $\sigma$.
+For each label, the length-of-stay distribution is shown, along with a [Q-Q plot](https://en.wikipedia.org/wiki/Q%E2%80%93Q_plot) comparing the sampled and fitted distributions. In general, a good fit will show in the Q-Q plot as approaching a straight line.
 
 > [!NOTE]
-> (**Not yet implemented**) The dashboard uses lognormal distributions for fitting. If the fit is poor, manual fitting may be required, in which case one should download the generated configuration (Excel) file in Step 5, edit the distribution information, and upload the edited Excel file to the alternate dashboard (**TODO**), which allows one to run a simulation on a completed configuration file rather than repeating Steps 1 to 4 of the full dashboard.
+> The `reliability` Python package is used for length-of-stay distribution fitting. Specifically, the `Lognormal_3P` distribution was selected, which states that for a $Y\sim \text{Lognormal\_3P}(\mu,\sigma,\gamma)$ distribution, $\ln(Y-\gamma)$ is normally distributed with mean $\mu$ and standard deviation $\sigma$.
 >
-> See the documentation for the [reliability Python library](https://reliability.readthedocs.io/en/latest/Creating%20and%20plotting%20distributions.html) if using custom distributions.  We will provide full instructions once this feature is available.
+> We choose to provide a single distribution type to simplify the dashbaord interface, with numerical tests demonstrating a reasonably good fit for multiple diseases and demographic groupings.
+>
+> Note that you may see an error message if any label contains too few patients to perform a length-of-stay fit (e.g., if the selected fitting period/date range contains no data).  Furthermore, as only a fraction of ICU patients will stay in a GIM bed before/after their ICU stay (see the flowchart above), the distribution fitter may report an insufficient number of patient stays even when the **total** number of ICU patients is sufficient for fitting.
+>
+> The probability of a patient requiring an ICU stay, and the probability of an ICU patient staying in the GIM before/after their ICU stay (see the flowchart at the top of this page) is also obtained from the historical data at this step and used for the simulation model.
 
-1. Click "Next" to proceed to Step 4.
+## Step 4, Option 1: Uploading a scenario configuration
 
-## Step 4: Arrival Scenario definition
+The simulation scenario can be defined by uploading an Excel file with two sheets:
 
-Eventually, there will be two options, to upload an Excel file defining the scenario (two columns with dates and daily arrival numbers, respectively), or to generate a scenario from a set of parameters.  **Currently, only the first option is implemented.**
+- "Daily Arrivals" should contain a "date" column and a "count" column showing the number of patient arrivals on each day.
+- "Hourly Distribution" contains an "hour" column and a "probability" column showing the probability of a patient's arrival falling into each one-hour interval within a day.
 
-![alt text](img/dashboard_step4.png)
+Once uploaded, you can review the scenario using the plots shown.
 
-1. Click the green button to download the example scenario.
-2. Upload the scenario Excel file using the "Upload config" button.  The scenario parameters will be shown on screen.
-3. Optionally, adjust the jitter parameter to add randomness to the simulation.  If jitter is non-zero, then the number of arrivals for a given day can vary from the specified value by up to the specified jitter percentage.
+Finally, the jitter input allows randomness to be inserted into the simulation scenario.  For example, if the number of arrivals on a given day is 10 and the jitter is set to 20%, the actual number of arrivals for that day could be anywhere between 8 and 12.
 
-## Step 5: Simulation
+> [!NOTE]
+> Rounding is applied to ensure the number of arrivals is always a whole number. The inputted arrival rate for a given day thus can be non-integer.
 
-Click the green button to start the simulation.  After a few seconds, the simulation results should appear.
+## Step 4, Option 2: Defining a simulation scenario manually using the fitter tool
 
-![Simulation results screenshot](img/dashboard_step5.png)
+The scenario fitter tool can create a simulation scenario from historical patient arrival data and contains several key sections:
 
-- You can select which age groups to include in the two plots (for GIM and ICU bed occupancy, respectively) using the multi-select menu (click on the Xs to remove an age group, or in the blank space to add a group).
-- Hover over either plot to see details for a given date.
+- **Curve fitting parameters:** set the date range for the fitted scenario, and whether the scenario should have zero patient arrivals on its first and last days.
+- **Parameters for modelled scenario:** controls for setting the simulation model parameters.  Clicking "Apply fitted parameters to scenario" from the "Curve fitting parameters" section will update the simulation parameters to created a time-shifted version of the fitted scenario.
+- **Plot:** Visualization of the fitted and scenario daily arrival curves.
+- **Jitter:** as in Option 1 ("Upload scenario config".)
 
-To download the simulation results in Excel form, click the corresponding blue button.  There are two sheets in the Excel workbook corresponding to GIM and ICU occupancy, respectively.  Each column represents a certain quantile in the simulation results, e.g. 0.5 represents the median and 0.9 the top decile (bed occupancy over 30 simulation runs).
+![scenario fitting tool](img/walkthrough/4/scenario1.png)
+
+The controls in the "Parameters for modelled scenario" section can be used to shift or reshape the fitted scenario.  For example, multiple scenarios which differ only in their peak value can be used to create a optimistic/base/pessimistic scenario comparison when predicting bed demand for a future disease outbreak.
+
+![scenario fitting tool](img/walkthrough/4/scenario2.png)
+
+> [!NOTE]
+> The generated scenario is based on shifting and scaling a [beta probability distribution function](https://en.wikipedia.org/wiki/Beta_distribution#Mode_and_concentration), defined using mode and concentration parameters. The leading and trailing halves of the distribution can be scaled differently to allow for fixed starting and ending values (with a common peak).
+
+## Step 5: Simulation and Results Visualization
+
+Click "Run Simulation" to start the simulation.
+
+Once the simulation is complete, plots of the simulated GIM and ICU bed occupancy over time will appear.  The central black line represents the median of the simulation runs, while the blue bands show the top/bottom deciles and quantiles.
+
+![simulation results display](img/walkthrough/5/results.png)
+
+The multiselect input can be used to select the age groups to include in the simulation results.  For example, if the age groups are 0-15, 16-64, and 65+, then the number of adult (16+) beds occupied can be shown by selecting the 16-64 and 65+ groups and deselecting the 0-15 group.
+
+Results can be exported in Excel format using the provided button, but apply only to the currently selected set of age groups.  The column "t" shows dates, while the columns 0.1, 0.25, 0.5, 0.75, and 0.9 shows quantiles for the maximum bed occupancy on that date.  In particular, the 0.5 column gives the median bed occupancy across the simulation runs.
+
+> [!NOTE]
+> The number of simulation runs is set internally to 30.
+
+### Scenario export
+
+The simulation scenario can be exported as an Excel file.  This file can be used to re-run the scenario in the future, or modified to create a set of related scenarios for what-if analysis.
+
+## Import mode
+
+Import mode allows simulations to be run without manually setting up the scenario in Steps 1-4.  The interface of Import mode is similar to Step 5, but provides a button to upload the completed scenario configuration as an Excel file.  The file format should match that generated by the export tool in Step 5 of Manual mode.
