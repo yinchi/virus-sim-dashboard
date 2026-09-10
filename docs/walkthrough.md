@@ -67,7 +67,7 @@ In the example above, the 38 patients who died after a GIM-only stay are all ass
 For each label, the length-of-stay distribution is shown, along with a [Q-Q plot](https://en.wikipedia.org/wiki/Q%E2%80%93Q_plot) comparing the sampled and fitted distributions. In general, a good fit will show in the Q-Q plot as approaching a straight line.
 
 > [!NOTE]
-> The `reliability` Python package is used for length-of-stay distribution fitting. Specifically, the `Lognormal_3P` distribution was selected, which states that for a $Y\sim \text{Lognormal\_3P}(\mu,\sigma,\gamma)$ distribution, $\ln(Y-\gamma)$ is normally distributed with mean $\mu$ and standard deviation $\sigma$.
+> The `reliability` Python package is used for length-of-stay distribution fitting. Specifically, the `Lognormal_3P` distribution was selected, which states that for a $Y\sim$ `Lognormal_ 3P`$(\mu,\sigma,\gamma)$ distribution, $\ln(Y-\gamma)$ is normally distributed with mean $\mu$ and standard deviation $\sigma$.
 >
 > We choose to provide a single distribution type to simplify the dashbaord interface, with numerical tests demonstrating a reasonably good fit for multiple diseases and demographic groupings.
 >
